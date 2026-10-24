@@ -1,4 +1,13 @@
 # Atlas Bug Registry
 # Registry of all known bugs
 
-bugs: []
+bugs:
+  - id: BUG-001
+    title: "request_id_middleware missing async/await — 500 on every request"
+    severity: critical
+    status: fixed
+    file: src/atlas_api/middlewares.py
+    discovered: "2026-10-24"
+    fix_path: quick-fix
+    commit: null  # to be filled after commit
+    doc: specs/bugs/BUG-001.md

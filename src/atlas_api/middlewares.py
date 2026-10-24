@@ -69,19 +69,19 @@ async def enforce_rate_limit(tenant_key: TenantKey, redis: Annotated[Redis, From
         raise RateLimitExceeded("rate limit exceeded", retry_after=1.0)
 
 
-def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
+async def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
     rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     structlog.contextvars.bind_contextvars(request_id=rid)
     try:
-        response = call_next(request)
+        response = await call_next(request)
         response.headers["X-Request-ID"] = rid
         return response
     finally:
         structlog.contextvars.unbind_contextvars()
 
 
-def security_headers_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
-    response = call_next(request)
+async def security_headers_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
+    response =  await call_next(request)
     for header, value in (
         ("X-Content-Type-Options", "nosniff"),
         ("X-Frame-Options", "DENY"),
