@@ -9,5 +9,5 @@ bugs:
     file: src/atlas_api/middlewares.py
     discovered: "2026-10-24"
     fix_path: quick-fix
-    commit: null  # to be filled after commit
+    commit: "5b3b172"
     doc: specs/bugs/BUG-001.md
