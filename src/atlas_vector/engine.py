@@ -11,11 +11,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from atlas_core.config import AtlasSettings, PostgresSettings
 
-_SessionFactory = async_sessionmaker[AsyncSession]
+SessionFactory = async_sessionmaker[AsyncSession]
 
 
 def create_engine_and_session(
@@ -26,7 +25,6 @@ def create_engine_and_session(
         pool_size=init.pool_size,
         pool_pre_ping=True,
         connect_args={"server_settings": {"statement_timeout": str(init.statement_timeout_ms)}},
-        poolclass=NullPool if settings is not None and settings.env == "test" else None,
     )
     if instrument:
         SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)

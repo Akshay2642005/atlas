@@ -8,7 +8,8 @@ from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Computed, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import TSVECTOR, Uuid
+from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import UUID as Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 

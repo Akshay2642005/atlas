@@ -35,6 +35,7 @@ class GroqChat:
     async def complete(self, messages: Sequence[ChatMessage], *, max_tokens: int | None = None) -> str:
         if self._chaos is not None:
             await self._chaos.step("groq.chat")
+        response = None
         try:
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(4),
@@ -49,6 +50,8 @@ class GroqChat:
                         temperature=self._settings.temperature,
                         max_tokens=max_tokens or self._settings.max_tokens,
                     )
+            if response is None:
+                raise InfraError("groq.chat failed: no response")
             return response.choices[0].message.content or ""
         except APIError as exc:
             raise InfraError(f"groq.chat failed: {exc}") from exc

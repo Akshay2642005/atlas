@@ -12,8 +12,10 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from atlas_core.config import AtlasSettings
 from atlas_core.domain.models import Chunk, Document, DocumentStatus
 from atlas_core.domain.ports import DocumentRepositoryPort, VectorRepositoryPort
-from atlas_vector.engine import _SessionFactory, create_engine_and_session
+from atlas_vector.engine import SessionFactory, create_engine_and_session
 from atlas_vector.schema import ChunkRow, DocumentContentRow, DocumentRow
+
+SessionFactoryAlias = SessionFactory
 
 
 def _chunk(row: ChunkRow) -> Chunk:
@@ -42,7 +44,7 @@ def _doc(row: DocumentRow) -> Document:
 
 
 class PgVectorRepository(VectorRepositoryPort):
-    def __init__(self, session_factory: _SessionFactory | None = None, settings: AtlasSettings | None = None) -> None:
+    def __init__(self, session_factory: SessionFactoryAlias | None = None, settings: AtlasSettings | None = None) -> None:
         self._session_factory = session_factory or create_engine_and_session(
             settings.postgres  # type: ignore[union-attr]
         )[1]
@@ -94,7 +96,7 @@ class PgVectorRepository(VectorRepositoryPort):
 
 
 class PgDocumentRepository(DocumentRepositoryPort):
-    def __init__(self, session_factory: _SessionFactory | None = None, settings: AtlasSettings | None = None) -> None:
+    def __init__(self, session_factory: SessionFactoryAlias | None = None, settings: AtlasSettings | None = None) -> None:
         self._session_factory = session_factory or create_engine_and_session(
             settings.postgres  # type: ignore[union-attr]
         )[1]
@@ -168,4 +170,4 @@ class PgDocumentRepository(DocumentRepositoryPort):
             result = await session.execute(
                 delete(DocumentRow).where(DocumentRow.tenant_id == tenant_id, DocumentRow.id == document_id)
             )
-        return bool(result.rowcount)
+        return bool(result.rowcount)  # type: ignore[attr-defined, no-any-return]

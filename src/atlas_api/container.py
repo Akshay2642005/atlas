@@ -26,6 +26,8 @@ class _ArqQueue(QueuePort):
         job = await self._pool.enqueue_job(
             "ingest_document", tenant_id=tenant_id, document_id=str(document_id)
         )
+        if job is None:
+            raise RuntimeError("Failed to enqueue job")
         return job.job_id
 
 
@@ -39,12 +41,10 @@ class ApiProvider(Provider):
 
 def build_container(settings: AtlasSettings | None = None) -> AsyncContainer:
     return make_async_container(
-        [
-            *core_providers(settings),
-            *llm_providers(),
-            *vector_providers(),
-            *ingest_providers(),
-            *retrieval_providers(),
-            ApiProvider(),
-        ]
+        *core_providers(settings),
+        *llm_providers(),
+        *vector_providers(),
+        *ingest_providers(),
+        *retrieval_providers(),
+        ApiProvider(),
     )

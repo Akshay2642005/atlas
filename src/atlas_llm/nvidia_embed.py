@@ -30,6 +30,7 @@ class NvidiaEmbedder:
             await self._chaos.step("nvidia.embed")
         out: list[list[float]] = []
         for batch in batched(texts, self._settings.batch_size):
+            response = None
             try:
                 async for attempt in AsyncRetrying(
                     stop=stop_after_attempt(4),
@@ -43,6 +44,8 @@ class NvidiaEmbedder:
                             input=list(batch),
                             extra_body={"input_type": kind.value, "truncate": self._settings.truncate},
                         )
+                if response is None:
+                    raise InfraError("nvidia.embed failed: no response")
                 out.extend([d.embedding for d in response.data])
             except APIError as exc:
                 raise InfraError(f"nvidia.embed failed: {exc}") from exc
