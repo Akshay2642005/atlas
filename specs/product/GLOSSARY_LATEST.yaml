@@ -1,0 +1,34 @@
+# Atlas Glossary
+# Domain language and terminology
+
+terms:
+  - term: RAG
+    definition: Retrieval-Augmented Generation - combining retrieval systems with LLM generation
+  - term: Tenant
+    definition: Isolated workspace for multi-tenant deployments
+  - term: pgVector
+    definition: PostgreSQL extension for vector similarity search
+  - term: HNSW
+    definition: Hierarchical Navigable Small World - approximate nearest neighbor index
+  - term: IVFFlat
+    definition: Inverted File with Flat - exact nearest neighbor index
+  - term: BM25
+    definition: Ranking function for full-text search
+  - term: RRF
+    definition: Reciprocal Rank Fusion - algorithm for combining ranked lists
+  - term: PII
+    definition: Personally Identifiable Information
+  - term: Presidio
+    definition: Microsoft library for PII detection and anonymization
+  - term: DI
+    definition: Dependency Injection
+  - term: Dishka
+    definition: Python DI framework used in Atlas
+  - term: Port
+    definition: Protocol interface in hexagonal architecture
+  - term: Provider
+    definition: Concrete implementation of a port
+  - term: Token bucket
+    definition: Rate limiting algorithm
+  - term: TSVECTOR
+    definition: PostgreSQL full-text search vector type

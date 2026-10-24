@@ -1,0 +1,10 @@
+# Atlas Planning Status
+# Discover-phase checklist
+
+discover:
+  survey_context: false
+  scope_work: false
+  research_first: false
+  elaborate_spec: false
+  plan_release: false
+  slice_tasks: false

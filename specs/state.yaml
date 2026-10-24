@@ -1,0 +1,20 @@
+# Atlas Session State
+# Source of truth for bigpowers workflow state
+
+workflow_mode: solo-git  # team-pr | solo-git
+
+session:
+  active_flow: null  # build_epic | fix_bug | null
+  active_epic_id: null
+  active_story_id: null
+  handoff:
+    next_skill: null
+    timestamp: null
+
+vcs:
+  kind: auto  # git | jj | auto
+  branch: null
+  commit: null
+
+metrics:
+  story_start: null

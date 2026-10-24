@@ -1,0 +1,24 @@
+# Atlas Vision
+# Product vision and strategic goals
+
+vision: |
+  Atlas is a self-hosted, web-based RAG platform that gives teams complete control over their retrieval-augmented generation stack. Deploy it once on your own infrastructure, then manage everything through a single web dashboard.
+
+strategic_goals:
+  - Provide data sovereignty for enterprise customers
+  - Enable multi-tenant RAG deployments
+  - Offer cost-efficient alternative to SaaS RAG solutions
+  - Maintain type-safe, refactorable codebase
+  - Support multiple LLM providers via simple configuration
+
+target_customers:
+  - Mid-market companies (50-500 employees) with data sovereignty requirements
+  - Enterprise teams locked into strict compliance (HIPAA, SOC 2, GDPR)
+  - Engineering teams who distrust "black box" SaaS RAG solutions
+  - Organizations with multi-tenant requirements
+
+differentiators:
+  - Self-hosted SaaS model
+  - Multi-provider LLM support (Groq, Anthropic, OpenAI, Google)
+  - Type-safe internals with DI-first architecture
+  - Cost efficiency (10x cheaper than SaaS alternatives)

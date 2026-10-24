@@ -1,0 +1,24 @@
+# Atlas Scope
+# What's in and out of scope for this project
+
+in_scope:
+  - Enterprise RAG platform with multi-tenant support
+  - Web dashboard for document management and queries
+  - Multi-provider LLM support (Groq, Anthropic, OpenAI, Google)
+  - Advanced pgVector indexing (HNSW, IVFFlat, DiskANN)
+  - Hybrid search (BM25 + vector)
+  - NVIDIA reranking
+  - Presidio PII detection
+  - Redis Streams async ingestion
+  - Document versioning
+  - Token bucket rate limiting
+  - Response caching
+  - Enhanced observability (OpenTelemetry, Prometheus)
+  - Configurable chunking strategies
+
+out_of_scope:
+  - SaaS hosting (self-hosted only)
+  - Mobile applications
+  - Real-time collaboration features
+  - Advanced analytics beyond basic metrics
+  - Custom integrations beyond standard APIs
