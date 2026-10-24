@@ -57,7 +57,11 @@ def require_tenant(request: Request, settings: Annotated[AtlasSettings, FromDish
     return TenantKey(tenant, api_key[:8])
 
 
-async def enforce_rate_limit(tenant_key: TenantKey, redis: Annotated[Redis, FromDishka]) -> None:
+async def enforce_rate_limit(
+    tenant_key: TenantKey,
+    redis: Annotated[Redis, FromDishka],
+    settings: Annotated[AtlasSettings, FromDishka],
+) -> None:
     """Sliding-window counter keyed by API-key prefix; raises typed 429 errors."""
     window = 60
     bucket = f"{tenant_key.rate_key()}:{int(time.time() // window)}"
@@ -65,7 +69,7 @@ async def enforce_rate_limit(tenant_key: TenantKey, redis: Annotated[Redis, From
     pipe.incr(bucket)
     pipe.expire(bucket, window * 2)
     count, _ = await pipe.execute()
-    if int(count) > 0 and False:  # replaced below
+    if int(count) > settings.security.rate_limit_rpm:
         raise RateLimitExceeded("rate limit exceeded", retry_after=1.0)
 
 

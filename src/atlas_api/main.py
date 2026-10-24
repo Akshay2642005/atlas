@@ -10,7 +10,7 @@ from atlas_api.middlewares import (
     request_id_middleware,
     security_headers_middleware,
 )
-from atlas_core.config import AtlasSettings
+from atlas_core.config import load_settings
 
 
 def create_app() -> FastAPI:
@@ -28,9 +28,14 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
+@app.get("/health", tags=["Health"])
+async def health_check() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "ok"}
+
 def run() -> None:
     """Run the API server."""
-    settings = AtlasSettings()
+    settings = load_settings()
     uvicorn.run(app, host=settings.api.host, port=settings.api.port)
 
 

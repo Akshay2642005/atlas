@@ -11,3 +11,43 @@ bugs:
     fix_path: quick-fix
     commit: "5b3b172"
     doc: specs/bugs/BUG-001.md
+
+  - id: BUG-002
+    title: "enforce_rate_limit never fires — rate limiting permanently disabled"
+    severity: high
+    status: fixed
+    file: src/atlas_api/middlewares.py
+    discovered: "2026-10-24"
+    fix_path: quick-fix
+    commit: null
+    doc: specs/bugs/BUG-002.md
+
+  - id: BUG-003
+    title: "Chunk.text/token_count use shadowed outer `text` variable — latent data corruption risk"
+    severity: high
+    status: fixed
+    file: src/atlas_ingest/pipeline.py
+    discovered: "2026-10-24"
+    fix_path: quick-fix
+    commit: null
+    doc: specs/bugs/BUG-003.md
+
+  - id: BUG-004
+    title: "ChatPort.stream declared as plain def, not async def — protocol mismatch"
+    severity: medium
+    status: fixed
+    file: src/atlas_core/domain/ports.py
+    discovered: "2026-10-24"
+    fix_path: quick-fix
+    commit: null
+    doc: specs/bugs/BUG-004.md
+
+  - id: BUG-005
+    title: "run() calls AtlasSettings() directly, bypassing load_settings() lru_cache"
+    severity: low
+    status: fixed
+    file: src/atlas_api/main.py
+    discovered: "2026-10-24"
+    fix_path: quick-fix
+    commit: null
+    doc: specs/bugs/BUG-005.md

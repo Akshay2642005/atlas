@@ -115,12 +115,12 @@ class IngestPipeline:
                         tenant_id=document.tenant_id,
                         seq=seq,
                         level=0,
-                        text=text,
-                        token_count=approx_tokens(text),
+                        text=chunk_text,
+                        token_count=approx_tokens(chunk_text),
                     ),
                     embedding,
                 )
-                for (seq, text), embedding in zip(pieces, embeddings, strict=True)
+                for (seq, chunk_text), embedding in zip(pieces, embeddings, strict=True)
             ]
             count = await self._vectors.upsert_chunks(document.tenant_id, document.id, body)
             await self._documents.set_status(document.tenant_id, document.id, DocumentStatus.INDEXED)
