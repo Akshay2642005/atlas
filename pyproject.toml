@@ -1,0 +1,113 @@
+[project]
+name = "atlas"
+version = "0.1.0"
+description = "Atlas — strictly-typed, DI-first enterprise RAG platform (Groq + NVIDIA + pgVector)."
+readme = "README.md"
+authors = [{ name = "Akshay B", email = "akshay2642005@gmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "dishka>=1.3",
+  "structlog>=24.4",
+  "opentelemetry-api>=1.27",
+  "opentelemetry-sdk>=1.27",
+  "pypdf>=5.0",
+  "openai>=1.40",
+  "httpx>=0.27",
+  "tenacity>=9.0",
+  "sqlalchemy[asyncio]>=2.0.35",
+  "asyncpg>=0.29",
+  "pgvector>=0.3",
+  "alembic>=1.13",
+  "opentelemetry-instrumentation-sqlalchemy>=0.48b0",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "arq>=0.26",
+  "opentelemetry-instrumentation-fastapi>=0.48b0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "mypy>=1.13",
+  "ruff>=0.7",
+  "basedpyright>=1.40.2",
+]
+
+[project.scripts]
+atlas-api = "atlas_api.main:run"
+
+# Common development commands:
+# uv run atlas-api          # Run the API server
+# uv run ruff check src/   # Lint
+# uv run ruff format src/  # Format
+# uv run mypy src/         # Type check
+# uv run pytest tests/     # Run tests
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+disallow_untyped_decorators = false
+warn_unused_ignores = false
+mypy_path = "src"
+disable_error_code = [
+  "comparison-overlap",
+  "union-attr",
+  "attr-defined",
+  "arg-type",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]                                # Line too long (formatter handles it)
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "atlas_core",
+  "atlas_llm",
+  "atlas_vector",
+  "atlas_ingest",
+  "atlas_retrieval",
+  "atlas_api",
+  "atlas_worker",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+
+# Reduce noise from incomplete third-party type information.
+reportMissingTypeStubs = "none"
+reportMissingModuleSource = "none"
+
+# Allow gradual typing without unknown-type warnings.
+reportUnknownParameterType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownVariableType = "none"
+reportUnknownMemberType = "none"
+reportUnknownLambdaType = "none"
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
