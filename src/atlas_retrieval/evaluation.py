@@ -17,6 +17,7 @@ _WS_RE = re.compile(r"\s+")
 _BULLET_RE = re.compile(r"^(?:[-*•]|\d+[.)])\s+")
 _QUOTES = "\"'“”‘’`"
 _ARM_RE = re.compile(r"^reembed:(?P<model>[A-Za-z0-9._/-]+)@(?P<dims>[0-9]+)(?P<ann>:hnsw)?$")
+_HYBRID_RE = re.compile(r"^hybrid(?P<rerank>-rerank)?(?:@(?P<depth>[0-9]+))?$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,13 +71,25 @@ class DeltaCI:
 
 @dataclass(frozen=True, slots=True)
 class ArmSpec:
-    """One retrieval configuration to evaluate."""
+    """One retrieval configuration to evaluate.
+
+    `existing` and `reembed` arms are dense-only SQL. `hybrid` and
+    `hybrid-rerank` run the production retriever (dense + lexical RRF, with or
+    without reranking), so they measure the pipeline users actually hit.
+    """
 
     name: str
-    kind: Literal["existing", "reembed"]
+    kind: Literal["existing", "reembed", "hybrid", "hybrid-rerank"]
     dims: int
     ann: bool = False
     model: str | None = None
+    # `hybrid-rerank@<n>` overrides the candidate depth sent to the reranker.
+    rerank_top_k: int | None = None
+
+    @property
+    def is_pipeline(self) -> bool:
+        """True when the arm runs `Retriever` instead of a raw SQL query."""
+        return self.kind in {"hybrid", "hybrid-rerank"}
 
 
 def truncate_embedding(values: Sequence[float], dims: int) -> list[float]:
@@ -214,17 +227,32 @@ def bootstrap_delta(
 
 
 def parse_arm(spec: str) -> ArmSpec:
-    """Parse `full4096`, `trunc2048[-hnsw]`, or `reembed:<model>@<dims>[:hnsw]`."""
+    """Parse a dense arm or a production `hybrid[-rerank[@depth]]` arm."""
     compact = spec.strip()
     if compact == "full4096":
         return ArmSpec(name=compact, kind="existing", dims=4096)
     if compact in {"trunc2048", "trunc2048-hnsw"}:
         return ArmSpec(name=compact, kind="existing", dims=2048, ann=compact.endswith("-hnsw"))
+    hybrid = _HYBRID_RE.match(compact)
+    if hybrid is not None:
+        rerank = hybrid.group("rerank") is not None
+        raw_depth = hybrid.group("depth")
+        depth = int(raw_depth) if raw_depth is not None else None
+        if depth is not None and depth < 1:
+            raise ValueError("rerank depth must be at least 1")
+        if depth is not None and not rerank:
+            raise ValueError("only hybrid-rerank accepts a candidate depth, e.g. hybrid-rerank@24")
+        return ArmSpec(
+            name=compact,
+            kind="hybrid-rerank" if rerank else "hybrid",
+            dims=0,
+            rerank_top_k=depth,
+        )
     match = _ARM_RE.match(compact)
     if match is None:
         raise ValueError(
             f"unknown arm {spec!r}; expected full4096, trunc2048, trunc2048-hnsw, "
-            "or reembed:<model>@<dims>[:hnsw]"
+            "hybrid, hybrid-rerank[@<depth>], or reembed:<model>@<dims>[:hnsw]"
         )
     dims = int(match.group("dims"))
     if not 1 <= dims <= 16000:

@@ -55,6 +55,66 @@ class _FailingReranker:
         raise InfraError("nvidia.rerank failed: [404] Not Found")
 
 
+class _ManyVectors:
+    def __init__(self, count: int) -> None:
+        self.chunks = [
+            Chunk(
+                id=uuid.uuid4(),
+                document_id=uuid.uuid4(),
+                tenant_id="tenant-a",
+                seq=index,
+                text=f"chunk {index}",
+            )
+            for index in range(count)
+        ]
+
+    async def semantic_search(
+        self, tenant_id: str, embedding: Sequence[float], *, k: int
+    ) -> list[tuple[Chunk, float]]:
+        return [(chunk, 1.0 - index / 100) for index, chunk in enumerate(self.chunks)]
+
+    async def lexical_search(
+        self, tenant_id: str, text: str, *, k: int
+    ) -> list[tuple[Chunk, float]]:
+        return []
+
+    async def upsert_chunks(
+        self,
+        tenant_id: str,
+        document_id: uuid.UUID,
+        chunks: Sequence[tuple[Chunk, Sequence[float]]],
+    ) -> int:
+        return 0
+
+
+class _RecordingReranker:
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    async def rerank(self, query: str, documents: Sequence[str]) -> list[float]:
+        self.seen = list(documents)
+        return [float(len(documents) - index) for index in range(len(documents))]
+
+
+async def test_rerank_only_sees_the_configured_candidate_depth() -> None:
+    vectors = _ManyVectors(5)
+    reranker = _RecordingReranker()
+    retriever = Retriever(
+        RetrievalSettings(enable_rerank=True, rerank_top_k=3, final_top_k=2),
+        vectors,  # pyright: ignore[reportArgumentType] — structural fake
+        _Embedder(),
+        reranker,
+    )
+
+    outcome = await retriever.retrieve(
+        Query(id=uuid.uuid4(), tenant_id="tenant-a", text="How does RRF work?")
+    )
+
+    assert reranker.seen == ["chunk 0", "chunk 1", "chunk 2"]
+    assert len(outcome.contexts) == 2
+    assert any(step.name == "rerank" and "3 candidates" in step.detail for step in outcome.trace)
+
+
 async def test_rerank_failure_pauses_retries_but_keeps_rrf_contexts() -> None:
     reranker = _FailingReranker()
     retriever = Retriever(

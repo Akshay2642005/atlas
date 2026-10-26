@@ -118,6 +118,27 @@ def test_parse_arm_supports_presets_and_reembedding() -> None:
     )
 
 
+def test_parse_arm_marks_pipeline_arms() -> None:
+    hybrid = parse_arm("hybrid")
+    reranked = parse_arm("hybrid-rerank")
+
+    assert hybrid.kind == "hybrid"
+    assert hybrid.is_pipeline
+    assert reranked.kind == "hybrid-rerank"
+    assert reranked.is_pipeline
+    assert not parse_arm("full4096").is_pipeline
+
+
+def test_parse_arm_reads_a_rerank_depth() -> None:
+    assert parse_arm("hybrid-rerank@24").rerank_top_k == 24
+    assert parse_arm("hybrid-rerank").rerank_top_k is None
+
+
+def test_parse_arm_rejects_a_depth_on_plain_hybrid() -> None:
+    with pytest.raises(ValueError, match="only hybrid-rerank"):
+        parse_arm("hybrid@24")
+
+
 def test_parse_arms_rejects_ann_above_the_cap() -> None:
     with pytest.raises(ValueError, match="4,000"):
         parse_arm("reembed:nvidia/nemotron-3.5-embed-8b@4096:hnsw")

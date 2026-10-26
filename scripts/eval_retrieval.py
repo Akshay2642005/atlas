@@ -43,8 +43,15 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from atlas_core.config import AtlasSettings
 from atlas_core.domain.errors import InfraError
-from atlas_core.domain.models import ChatMessage
-from atlas_core.domain.ports import ChatPort, ChunkerPort, EmbedderPort, EmbedKind
+from atlas_core.domain.models import ChatMessage, Query
+from atlas_core.domain.ports import (
+    ChatPort,
+    ChunkerPort,
+    EmbedderPort,
+    EmbedKind,
+    RerankerPort,
+    VectorRepositoryPort,
+)
 from atlas_core.security.injection import HeuristicInjectionGuard
 from atlas_core.security.pii import RegexPiiDetector
 from atlas_core.security.sanitize import Sanitizer
@@ -58,6 +65,7 @@ from atlas_ingest.loaders import (
 )
 from atlas_ingest.pipeline import IngestPipeline, IngestSpec
 from atlas_llm.nvidia_embed import NvidiaEmbedder
+from atlas_llm.nvidia_rerank import NvidiaReranker
 from atlas_llm.provider import build_chat
 from atlas_retrieval.evaluation import (
     ArmSpec,
@@ -74,6 +82,7 @@ from atlas_retrieval.evaluation import (
     summarize,
     truncate_embedding,
 )
+from atlas_retrieval.retriever import Retriever, split_query
 from atlas_vector.engine import create_engine_and_session
 from atlas_vector.repositories import PgDocumentRepository, PgVectorRepository
 
@@ -243,6 +252,39 @@ async def _embed_cached(
             raise RuntimeError(f"embedding cache miss for {key}")
         resolved.append(vector)
     return resolved
+
+
+class _CachedEmbedder:
+    """`EmbedderPort` that serves query vectors from the local cache.
+
+    The production `Retriever` embeds each sub-query itself. Wrapping it keeps
+    pipeline arms on the same cached vectors as the dense arms, so a flaky NIM
+    endpoint cannot make the two incomparable or abort the run.
+    """
+
+    def __init__(
+        self,
+        embedder: EmbedderPort,
+        *,
+        model: str,
+        dims: int,
+        cache: _EmbeddingCache,
+    ) -> None:
+        self._embedder = embedder
+        self._model = model
+        self._dims = dims
+        self._cache = cache
+
+    async def embed(self, texts: Sequence[str], kind: EmbedKind) -> list[list[float]]:
+        return await _embed_cached(
+            self._embedder,
+            texts,
+            kind,
+            "retriever embedding",
+            model=self._model,
+            dims=self._dims,
+            cache=self._cache,
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -555,9 +597,10 @@ def _table_name(run_id: str, arm: ArmSpec) -> str:
 @dataclass(frozen=True, slots=True)
 class _PreparedArm:
     spec: ArmSpec
-    sql: str
+    sql: str | None
     table: str | None
     build_seconds: float
+    retriever: Retriever | None = None
 
 
 async def _materialize_existing(conn: AsyncConnection, table: str, tenant: str, dims: int) -> None:
@@ -670,7 +713,44 @@ async def _prepare_arm(
     run_id: str,
     corpus_dims: int,
     cache: _EmbeddingCache,
+    vectors: VectorRepositoryPort,
+    *,
+    k: int,
 ) -> _PreparedArm:
+    if arm.is_pipeline:
+        retrieval = settings.retrieval.model_copy(
+            update={
+                "enable_rerank": arm.kind == "hybrid-rerank",
+                # Score the same depth the dense arms use; the configured value
+                # (6 by default) is tuned for answer context, not evaluation.
+                "final_top_k": max(k, settings.retrieval.final_top_k),
+                "rerank_top_k": arm.rerank_top_k or settings.retrieval.rerank_top_k,
+            }
+        )
+        embedder = _CachedEmbedder(
+            NvidiaEmbedder(
+                settings.nvidia.model_copy(update={"embedding_dimensions": corpus_dims})
+            ),
+            model=settings.nvidia.embedding_model,
+            dims=corpus_dims,
+            cache=cache,
+        )
+        reranker: RerankerPort | None = (
+            NvidiaReranker(settings.nvidia) if arm.kind == "hybrid-rerank" else None
+        )
+        return _PreparedArm(
+            spec=arm,
+            sql=None,
+            table=None,
+            build_seconds=0.0,
+            retriever=Retriever(
+                settings=retrieval,
+                vectors=vectors,
+                embedder=embedder,
+                reranker=reranker,
+            ),
+        )
+
     started = time.perf_counter()
     table: str | None = None
     needs_table = arm.kind == "reembed" or arm.ann
@@ -770,7 +850,6 @@ async def _reembed_query_vectors(
         )
     )
     _log(f"embedding {len(cases)} queries with {arm.model} at {arm.dims} dims")
-    assert arm.model is not None
     return await _embed_cached(
         embedder,
         [case.query for case in cases],
@@ -782,6 +861,34 @@ async def _reembed_query_vectors(
     )
 
 
+async def _warm_pipeline_embeddings(
+    settings: AtlasSettings,
+    cases: Sequence[EvalCase],
+    corpus_dims: int,
+    cache: _EmbeddingCache,
+) -> None:
+    """Populate the cache for every sub-query the retriever will embed.
+
+    `Retriever` splits compound questions before embedding, so full-query cache
+    entries are not enough. Without this pass the first pipeline arm would pay
+    cold NIM latency and report it as retrieval latency.
+    """
+    sub_queries = sorted({sub for case in cases for sub in split_query(case.query)})
+    embedder = NvidiaEmbedder(
+        settings.nvidia.model_copy(update={"embedding_dimensions": corpus_dims})
+    )
+    _log(f"warming {len(sub_queries)} sub-query embeddings for pipeline arms")
+    await _embed_cached(
+        embedder,
+        sub_queries,
+        EmbedKind.QUERY,
+        "pipeline warm-up",
+        model=settings.nvidia.embedding_model,
+        dims=corpus_dims,
+        cache=cache,
+    )
+
+
 @dataclass(slots=True)
 class _ArmOutcome:
     spec: ArmSpec
@@ -789,6 +896,44 @@ class _ArmOutcome:
     summary: ScoreSummary
     per_case: list[tuple[EvalCase, QueryScore]]
     latencies: list[float]
+    reranked: int | None = None
+
+
+async def _evaluate_pipeline_arm(
+    retriever: Retriever,
+    prepared: _PreparedArm,
+    tenant: str,
+    cases: Sequence[EvalCase],
+    relevant: Sequence[Sequence[str]],
+    k: int,
+) -> _ArmOutcome:
+    """Score the production retriever, latency included (embed + SQL + rerank)."""
+    scores: list[QueryScore] = []
+    per_case: list[tuple[EvalCase, QueryScore]] = []
+    latencies: list[float] = []
+    reranked = 0
+    for case, positive_ids in zip(cases, relevant, strict=True):
+        started = time.perf_counter()
+        outcome = await retriever.retrieve(
+            Query(id=uuid.uuid4(), tenant_id=tenant, text=case.query)
+        )
+        latencies.append((time.perf_counter() - started) * 1000.0)
+        if any(step.name == "rerank" and "applied" in step.detail for step in outcome.trace):
+            reranked += 1
+        ranked = [str(context.chunk_id) for context in outcome.contexts]
+        score = score_ranking(ranked, positive_ids, k=k)
+        scores.append(score)
+        per_case.append((case, score))
+    return _ArmOutcome(
+        spec=prepared.spec,
+        build_seconds=prepared.build_seconds,
+        summary=summarize(scores, latencies),
+        per_case=per_case,
+        latencies=latencies,
+        # `hybrid` intentionally does not rerank; only report coverage for arms
+        # that claim to.
+        reranked=reranked if prepared.spec.kind == "hybrid-rerank" else None,
+    )
 
 
 async def _evaluate_arm(
@@ -801,6 +946,11 @@ async def _evaluate_arm(
     k: int,
     ef_search: int,
 ) -> _ArmOutcome:
+    if prepared.retriever is not None:
+        return await _evaluate_pipeline_arm(
+            prepared.retriever, prepared, tenant, cases, relevant, k
+        )
+    assert prepared.sql is not None
     scores: list[QueryScore] = []
     per_case: list[tuple[EvalCase, QueryScore]] = []
     latencies: list[float] = []
@@ -853,9 +1003,16 @@ def _markdown(
 ) -> str:
     generated = time.strftime("%Y-%m-%d %H:%M:%S %Z")
     models = sorted({outcome.spec.model or settings.nvidia.embedding_model for outcome in outcomes})
+    pipeline = [outcome for outcome in outcomes if outcome.spec.is_pipeline]
+    reranked = [outcome for outcome in outcomes if outcome.reranked is not None]
     title = "# Retrieval evaluation — Atlas corpus"
     if label:
         title = f"{title} ({label})"
+    scoring = (
+        "Dense arms score cosine distance only; `hybrid` arms run production RRF"
+        if pipeline
+        else "Dense-only: cosine distance, no fusion or reranking"
+    )
     lines = [
         title,
         "",
@@ -869,7 +1026,15 @@ def _markdown(
         f"- Queries: **{len(cases)}** scored, {skipped} skipped (ground truth no longer resolvable)",
         f"- Query set: `{queries_path}`",
         f"- Query embedder(s): {', '.join(f'`{model}`' for model in models)}",
-        f"- Dense-only, top-{k}, cosine distance; no fusion or reranking",
+        f"- Top-{k}; {scoring}",
+    ]
+    if reranked:
+        coverage = ", ".join(
+            f"`{outcome.spec.name}` {outcome.reranked}/{outcome.summary.count}"
+            for outcome in reranked
+        )
+        lines.append(f"- Rerank coverage: {coverage} queries")
+    lines += [
         f"- Server: `{environment['server']}`; pgvector `{environment['pgvector']}`",
         "",
         "## Results",
@@ -952,6 +1117,10 @@ def _markdown(
         "  small corpora. Use the deltas between arms, not the absolute values.",
         "- ANN arms force `enable_seqscan = off` so the HNSW index is actually used.",
         "  Their latency is not directly comparable to exact arms on tiny corpora.",
+        "- Dense-arm latency measures the SQL query only. `hybrid` arms also include",
+        "  query embedding (cached here, so near zero) and, for `hybrid-rerank`, the",
+        "  hosted rerank round trip. That is the number users feel, but it is not a",
+        "  like-for-like comparison with dense SQL.",
         "",
     ]
     return "\n".join(lines)
@@ -961,7 +1130,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
     settings = _settings(args.url)
     arms = parse_arms(args.arms)
     cases = _load_cases(args.queries)
-    engine, _ = create_engine_and_session(settings.postgres)
+    engine, session_factory = create_engine_and_session(settings.postgres)
     run_id = f"{datetime.datetime.now(datetime.UTC):%Y%m%dT%H%M%S}_{uuid.uuid4().hex[:6]}"
     tables: list[str] = []
     try:
@@ -994,6 +1163,8 @@ async def cmd_run(args: argparse.Namespace) -> int:
         base_vectors: list[list[float]] = []
         if any(arm.kind == "existing" for arm in arms):
             base_vectors = await _query_vectors(settings, resolved, corpus["dims"], cache)
+        if any(arm.is_pipeline for arm in arms):
+            await _warm_pipeline_embeddings(settings, resolved, corpus["dims"], cache)
         vectors_by_arm: dict[str, list[list[float]]] = {}
         for arm in arms:
             if arm.kind == "existing":
@@ -1001,17 +1172,28 @@ async def cmd_run(args: argparse.Namespace) -> int:
                     base if arm.dims == corpus["dims"] else truncate_embedding(base, arm.dims)
                     for base in base_vectors
                 ]
-            else:
+            elif arm.kind == "reembed":
                 assert arm.model is not None
                 vectors_by_arm[arm.name] = await _reembed_query_vectors(
                     settings, resolved, arm, cache
                 )
+            else:
+                # Pipeline arms embed each sub-query through `_CachedEmbedder`.
+                vectors_by_arm[arm.name] = []
 
         outcomes: list[_ArmOutcome] = []
         for arm in arms:
             _log(f"preparing {arm.name} ...")
             prepared = await _prepare_arm(
-                engine, settings, args.tenant, arm, run_id, corpus["dims"], cache
+                engine,
+                settings,
+                args.tenant,
+                arm,
+                run_id,
+                corpus["dims"],
+                cache,
+                PgVectorRepository(session_factory),
+                k=args.k,
             )
             if prepared.table is not None:
                 tables.append(prepared.table)
@@ -1031,6 +1213,18 @@ async def cmd_run(args: argparse.Namespace) -> int:
             )
             outcomes.append(outcome)
             summary = outcome.summary
+            if arm.kind == "hybrid-rerank":
+                reranked = outcome.reranked or 0
+                if reranked == 0:
+                    raise SystemExit(
+                        "hybrid-rerank never applied reranking (provider unavailable?); "
+                        "refusing to report a no-rerank result as reranked"
+                    )
+                if reranked < summary.count:
+                    _log(
+                        f"  warning: rerank applied to {reranked}/{summary.count} "
+                        "queries; the rest were skipped after a provider failure"
+                    )
             _log(
                 f"  recall@{args.k}={_pct(summary.recall)} ndcg@{args.k}={_pct(summary.ndcg)} "
                 f"p50={summary.p50_ms:.1f}ms p95={summary.p95_ms:.1f}ms"
@@ -1067,6 +1261,7 @@ async def cmd_run(args: argparse.Namespace) -> int:
                     "hit_at_1": outcome.summary.hit_at_1,
                     "p50_ms": outcome.summary.p50_ms,
                     "p95_ms": outcome.summary.p95_ms,
+                    "reranked": outcome.reranked,
                     "delta_vs_baseline": {
                         "recall": asdict(
                             bootstrap_delta(

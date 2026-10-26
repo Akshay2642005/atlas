@@ -76,7 +76,9 @@ class Retriever:
         self._rerank_paused_until = 0.0
 
     async def retrieve(self, query: Query) -> RetrievalOutcome:
-        with _tracer.start_as_current_span("retrieval.hybrid", attributes={"tenant.id": query.tenant_id}):
+        with _tracer.start_as_current_span(
+            "retrieval.hybrid", attributes={"tenant.id": query.tenant_id}
+        ):
             subs = split_query(query.text)
             trace = [TraceStep("decompose", f"{len(subs)} sub-query(ies)")]
             semantic_ranks: list[list[str]] = []
@@ -84,24 +86,27 @@ class Retriever:
             by_id: dict[str, tuple[uuid.UUID, uuid.UUID, str]] = {}
             for sub in subs:
                 embedding = (await self._embedder.embed([sub], kind=EmbedKind.QUERY))[0]
-                dense = await self._vectors.semantic_search(query.tenant_id, embedding, k=self._settings.semantic_top_k)
-                lexical = await self._vectors.lexical_search(query.tenant_id, sub, k=self._settings.lexical_top_k)
+                dense = await self._vectors.semantic_search(
+                    query.tenant_id, embedding, k=self._settings.semantic_top_k
+                )
+                lexical = await self._vectors.lexical_search(
+                    query.tenant_id, sub, k=self._settings.lexical_top_k
+                )
                 semantic_ranks.append([str(c.id) for c, _ in dense])
                 lexical_ranks.append([str(c.id) for c, _ in lexical])
                 for chunk, _ in [*dense, *lexical]:
-                    by_id.setdefault(
-                        str(chunk.id), (chunk.id, chunk.document_id, chunk.text)
-                    )
+                    by_id.setdefault(str(chunk.id), (chunk.id, chunk.document_id, chunk.text))
             fused = rrf_fusion([*semantic_ranks, *lexical_ranks], k=self._settings.rrf_k)
             trace.append(TraceStep("rrf", f"{len(fused)} unique chunks fused"))
 
             ordered = sorted(fused.items(), key=lambda kv: kv[1], reverse=True)
             contexts: list[RetrievedContext] = []
             scores: list[float] | None = None
-            if self._reranker is not None and ordered and not self._rerank_paused():
+            candidates = ordered[: max(self._settings.rerank_top_k, self._settings.final_top_k)]
+            if self._reranker is not None and candidates and not self._rerank_paused():
                 try:
                     scores = await self._reranker.rerank(
-                        query.text, [by_id[cid][2] for cid, _ in ordered]
+                        query.text, [by_id[cid][2] for cid, _ in candidates]
                     )
                 except InfraError as exc:
                     self._pause_rerank()
@@ -121,10 +126,12 @@ class Retriever:
                         rerank_score=score,
                         final_score=score,
                     )
-                    for (cid, rrf), score in zip(ordered, scores, strict=True)
+                    for (cid, rrf), score in zip(candidates, scores, strict=True)
                 ]
                 contexts.sort(key=lambda c: c.final_score, reverse=True)
-                trace.append(TraceStep("rerank", "nvidia rerank applied"))
+                trace.append(
+                    TraceStep("rerank", f"nvidia rerank applied ({len(candidates)} candidates)")
+                )
             if not contexts:
                 contexts = [
                     RetrievedContext(
@@ -136,7 +143,11 @@ class Retriever:
                     )
                     for cid, rrf in ordered
                 ]
-            trace.append(TraceStep("select", f"top {min(len(contexts), self._settings.final_top_k)} contexts"))
+            trace.append(
+                TraceStep(
+                    "select", f"top {min(len(contexts), self._settings.final_top_k)} contexts"
+                )
+            )
             return RetrievalOutcome(contexts=contexts[: self._settings.final_top_k], trace=trace)
 
     def _rerank_paused(self) -> bool:
