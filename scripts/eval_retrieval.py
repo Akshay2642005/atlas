@@ -250,6 +250,15 @@ async def _embed_cached(
 # --------------------------------------------------------------------------- #
 
 
+def _display_path(path: Path) -> str:
+    """Prefer a repository-relative path so committed query sets stay portable."""
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(Path.cwd().resolve()))
+    except ValueError:
+        return str(resolved)
+
+
 def _collect_files(paths: Sequence[str], extensions: set[str]) -> list[Path]:
     found: dict[Path, None] = {}
     for raw in paths:
@@ -322,7 +331,10 @@ async def cmd_ingest(args: argparse.Namespace) -> int:
             try:
                 result = await pipeline.run(
                     IngestSpec(
-                        tenant_id=args.tenant, content=content, mime=mime, source_uri=str(path)
+                        tenant_id=args.tenant,
+                        content=content,
+                        mime=mime,
+                        source_uri=_display_path(path),
                     )
                 )
             except Exception as exc:  # noqa: BLE001 — one bad file must not hide the rest
@@ -445,7 +457,7 @@ async def cmd_generate(args: argparse.Namespace) -> int:
                 "query": question,
                 "tenant_id": args.tenant,
                 "relevant": [{"checksum": row["checksum"], "seq": int(row["seq"])}],
-                "source_uri": row["source_uri"],
+                "source_uri": _display_path(Path(str(row["source_uri"]))),
                 "generator_model": _generator_label(settings),
                 "generated_at": generated_at,
             }
