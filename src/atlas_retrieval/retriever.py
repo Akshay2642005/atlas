@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -19,6 +20,11 @@ _log = structlog.get_logger(__name__)
 _tracer = get_tracer("atlas.retrieval")
 
 _SPLIT_RE = re.compile(r"\?+|\band also\b|;|\n+")
+
+# Rerank failures are usually configuration (model not entitled) rather than
+# transient, so pause after a failure instead of paying a failed round-trip on
+# every request. A success after the cooldown keeps the provider in rotation.
+_RERANK_COOLDOWN_SECONDS = 300.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +73,7 @@ class Retriever:
         self._vectors = vectors
         self._embedder = embedder
         self._reranker = reranker if settings.enable_rerank else None
+        self._rerank_paused_until = 0.0
 
     async def retrieve(self, query: Query) -> RetrievalOutcome:
         with _tracer.start_as_current_span("retrieval.hybrid", attributes={"tenant.id": query.tenant_id}):
@@ -90,26 +97,34 @@ class Retriever:
 
             ordered = sorted(fused.items(), key=lambda kv: kv[1], reverse=True)
             contexts: list[RetrievedContext] = []
-            if self._reranker is not None and ordered:
+            scores: list[float] | None = None
+            if self._reranker is not None and ordered and not self._rerank_paused():
                 try:
-                    scores = await self._reranker.rerank(query.text, [by_id[cid][2] for cid, _ in ordered])
+                    scores = await self._reranker.rerank(
+                        query.text, [by_id[cid][2] for cid, _ in ordered]
+                    )
                 except InfraError as exc:
-                    _log.warning("rerank.skipped", error=str(exc))
-                    scores = None  # type: ignore[assignment]
-                if scores is not None:
-                    contexts = [
-                        RetrievedContext(
-                            chunk_id=by_id[cid][0],
-                            document_id=by_id[cid][1],
-                                text=by_id[cid][2],
-                            rrf_score=rrf,
-                            rerank_score=score,
-                            final_score=score,
-                        )
-                        for (cid, rrf), score in zip(ordered, scores, strict=True)
-                    ]
-                    contexts.sort(key=lambda c: c.final_score, reverse=True)
-                    trace.append(TraceStep("rerank", "nvidia rerank applied"))
+                    self._pause_rerank()
+                    _log.warning(
+                        "rerank.skipped",
+                        error=str(exc),
+                        retry_in_seconds=_RERANK_COOLDOWN_SECONDS,
+                    )
+                    trace.append(TraceStep("rerank", "skipped (provider unavailable)"))
+            if scores is not None:
+                contexts = [
+                    RetrievedContext(
+                        chunk_id=by_id[cid][0],
+                        document_id=by_id[cid][1],
+                        text=by_id[cid][2],
+                        rrf_score=rrf,
+                        rerank_score=score,
+                        final_score=score,
+                    )
+                    for (cid, rrf), score in zip(ordered, scores, strict=True)
+                ]
+                contexts.sort(key=lambda c: c.final_score, reverse=True)
+                trace.append(TraceStep("rerank", "nvidia rerank applied"))
             if not contexts:
                 contexts = [
                     RetrievedContext(
@@ -123,3 +138,9 @@ class Retriever:
                 ]
             trace.append(TraceStep("select", f"top {min(len(contexts), self._settings.final_top_k)} contexts"))
             return RetrievalOutcome(contexts=contexts[: self._settings.final_top_k], trace=trace)
+
+    def _rerank_paused(self) -> bool:
+        return time.monotonic() < self._rerank_paused_until
+
+    def _pause_rerank(self) -> None:
+        self._rerank_paused_until = time.monotonic() + _RERANK_COOLDOWN_SECONDS
