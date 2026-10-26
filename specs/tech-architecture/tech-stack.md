@@ -19,11 +19,14 @@
 
 ## LLM & Embedding Providers
 
-- **Groq:** Fast LLM inference (Llama models)
-- **NVIDIA:** Embeddings and reranking
-- **Anthropic:** High-quality LLM (Claude models)
-- **OpenAI:** Widely-used LLM (GPT models)
-- **Google Gemini:** Multimodal LLM
+All provider adapters use LangChain integration packages behind `ChatPort` / `EmbedderPort` / `RerankerPort`:
+
+- **Groq:** `langchain-groq` (`ChatGroq`) — fast Llama inference; default chat provider
+- **OpenAI:** `langchain-openai` (`ChatOpenAI`) — official API plus any OpenAI-compatible `base_url`
+- **Anthropic:** `langchain-anthropic` (`ChatAnthropic`) — Claude models
+- **NVIDIA:** `langchain-nvidia-ai-endpoints` (`ChatNVIDIA`, `NVIDIAEmbeddings`, `NVIDIARerank`) — NIM chat, embeddings, reranking
+- **Provider selection:** `CHAT__PROVIDER` (`groq|openai|anthropic|nvidia`) resolved by `atlas_llm/provider.py:build_chat`
+- **Google Gemini:** not implemented; would be another `ChatPort` adapter (`langchain-google-genai`)
 
 ## Infrastructure
 
