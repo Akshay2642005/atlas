@@ -31,7 +31,7 @@ class NvidiaReranker:
             api_key=settings.api_key or "not-configured",
             max_batch_size=settings.batch_size,
             usage_telemetry_enabled=False,
-            **client_options,
+            **client_options,  # pyright: ignore[reportArgumentType]
         )
 
     async def rerank(self, query: str, documents: Sequence[str]) -> list[float]:

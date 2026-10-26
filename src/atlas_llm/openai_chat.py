@@ -19,7 +19,7 @@ class OpenAIChat(LangChainChat):
     ) -> None:
         model = ChatOpenAI(
             model=settings.model,
-            api_key=settings.api_key or "not-configured",
+            api_key=settings.api_key or "not-configured",  # pyright: ignore[reportArgumentType]
             base_url=settings.base_url,
             temperature=chat.temperature,
             max_completion_tokens=chat.max_tokens,

@@ -15,7 +15,7 @@ class AnthropicChat(LangChainChat):
     ) -> None:
         model = ChatAnthropic(
             model_name=settings.model,
-            api_key=settings.api_key or "not-configured",
+            api_key=settings.api_key or "not-configured",  # pyright: ignore[reportArgumentType]
             base_url=settings.base_url,
             temperature=chat.temperature,
             max_tokens_to_sample=chat.max_tokens,
