@@ -55,7 +55,7 @@ class AnswerService:
         context, citations = self._build_context(outcome)
         messages = [ChatMessage("system", self._settings.system_prompt + context), ChatMessage("user", query.text)]
         parts: list[str] = []
-        async for delta in self._chat.stream(messages):  # pyright: ignore[reportGeneralTypeIssues]
+        async for delta in self._chat.stream(messages):
             parts.append(delta)
             yield {"type": "delta", "text": delta}
         text = "".join(parts)
