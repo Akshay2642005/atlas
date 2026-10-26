@@ -92,6 +92,49 @@ data — but it is not free:
   is 140 ms; the LLM round trip and embedding call are seconds. Saving 140 ms
   to add a lossy index is a bad trade at this scale.
 
+## Evaluation harness
+
+The gate for a future width change is `scripts/eval_retrieval.py`, run through
+`make eval-db`, `make eval-ingest`, `make eval-queries`, and `make eval`. It
+compares dense arms on recall@k, MRR, nDCG@k, and latency, with a paired
+bootstrap interval over queries. Ground truth is keyed by
+`(document checksum, chunk seq)` so a query set survives re-ingestion; arms are
+`full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]`.
+
+A first run over the repository corpus (112 chunks, 40 generated questions)
+measured:
+
+| arm | recall@10 | nDCG@10 | p50 |
+| --- | ---: | ---: | ---: |
+| `full4096` | 92.5% | 71.2% | 2.3 ms |
+| `trunc2048` | 92.5% | 70.2% | 2.5 ms |
+| `trunc2048-hnsw` | 92.5% | 70.2% | 0.9 ms |
+
+The nDCG difference for truncation is **−1.0 pp (95% CI −3.9 … +1.8)**, which
+is not distinguishable from query-sampling noise. The HNSW arm was verified to
+use the index (`EXPLAIN` shows an index scan on the `halfvec_cosine_ops` index
+under `enable_seqscan = off`).
+
+The harness also validated a real model swap on the same query set
+(`specs/verifications/EVAL-retrieval-1b-width.md`):
+
+| arm | recall@10 | nDCG@10 |
+| --- | ---: | ---: |
+| `full4096` (8B) | 92.5% | 71.2% |
+| 1B @ 2048 | 92.5% | 71.7% |
+| 1B @ 1024 | 95.0% | 71.0% |
+
+The 1B is not worse on this corpus within the confidence interval (+0.5 pp
+nDCG, 95% CI −7.2 … +8.8). That does **not** overturn the decision: a 112-chunk
+corpus has almost no headroom to show a difference, and retrieval is easy when
+questions are generated from the target chunk. It does mean the 1B is not
+obviously inferior here, so a tenant-scale run is the right way to settle it
+rather than NVIDIA's leaderboard alone.
+
+The harness is the gate, not this run. Reports:
+`specs/verifications/EVAL-retrieval.md` and
+`specs/verifications/EVAL-retrieval-1b-width.md`.
+
 ## Consequences
 
 - Recall is exact; there is no approximate-index tuning to get wrong.

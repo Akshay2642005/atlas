@@ -96,6 +96,19 @@ All settings are typed in `atlas_core/config.py`; nested env groups use `__`:
 
 Embeddings are 4096-dimensional, stored as `halfvec(4096)`. pgvector caps ANN indexes at 4,000 dimensions for `halfvec`, so Atlas does **not** create an HNSW/IVFFlat index: dense retrieval runs an exact cosine scan, while lexical retrieval stays GIN-indexed. `halfvec` halves storage and exact-scan I/O versus `vector(4096)` with no re-embedding. That is exact but scales linearly with each tenant's chunk count; see [ADR 0003](specs/adr/0003-embedding-width-and-ann-indexing.md) and [the benchmark](specs/verifications/BENCH-indexing.md) for the measured alternatives (a ≤2,000-dim model, or a binary-quantized expression index). The 4096-native `nemotron-3.5-embed-8b` is the only 4096-dim model on the NVIDIA key used here and has variable cold-start latency; the adapter allows 180s and retries transient failures once.
 
+### Retrieval evaluation
+
+The decision gate for embedding-width or model changes is `scripts/eval_retrieval.py`, not an ad-hoc benchmark. It ingests a corpus, generates one judged question per sampled chunk, and compares dense arms on recall@k, MRR, nDCG@k, and latency with a paired bootstrap confidence interval.
+
+```bash
+make eval-db        # create atlas_eval and migrate it
+make eval-ingest    # ingest specs + README into the atlas-eval tenant
+make eval-queries   # ask the chat model for one question per sampled chunk
+make eval           # full4096 vs trunc2048 -> specs/verifications/EVAL-retrieval.md
+```
+
+Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The harness is dense-only by design: fusion and reranking would hide the embedding change being tested.
+
 Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.
 
 ## Chat providers
@@ -144,4 +157,4 @@ Tests are service-free: the pipeline test uses in-memory repositories, and the A
 
 ## Roadmap (deliberately out of scope)
 
-Evaluation harness (Ragas/TruLens), object storage for uploads, hierarchical summary levels (RAPTOR), per-request model budgets, JWT/OIDC auth, MMR diversity, and true late chunking once a token-level embedding provider is added. The ports make each of these additive rather than invasive.
+Ragas/TruLens integration on top of the built-in evaluation harness, object storage for uploads, hierarchical summary levels (RAPTOR), per-request model budgets, JWT/OIDC auth, MMR diversity, and true late chunking once a token-level embedding provider is added. The ports make each of these additive rather than invasive.
