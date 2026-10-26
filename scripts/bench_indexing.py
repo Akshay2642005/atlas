@@ -51,9 +51,10 @@ def _copy_header() -> bytes:
 
 
 def _vector_payload(vector: np.ndarray, half: bool) -> bytes:
-    if half:
-        return struct.pack(">hh", vector.size, 0) + vector.astype(">f2").tobytes()
-    return struct.pack(">hh", vector.size, 0) + vector.astype(">f4").tobytes()
+    # numpy ships no type information here, so its `tobytes()` is `Any`.
+    dtype = ">f2" if half else ">f4"
+    body = bytes(vector.astype(dtype).tobytes())
+    return struct.pack(">hh", int(vector.size), 0) + body
 
 
 def _copy_chunk(
