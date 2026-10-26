@@ -1,0 +1,45 @@
+story_id: e01s01
+title: Ship 4096-dim embeddings and hosted Nemotron reranking
+status: done
+bcps: 8
+tasks:
+  - id: 1
+    description: Configure nemotron-3.5-embed-8b, 4096 dimensions, timeout and retry policy
+    verify: "uv run pytest tests/test_llm_adapters.py -k embedder -q"
+    status: done
+  - id: 2
+    description: Pass the configured dimensions to the LangChain embedding client
+    verify: "uv run pytest tests/test_llm_adapters.py -k dimensions -q"
+    status: done
+  - id: 3
+    description: Store vector(4096), drop HNSW, and migrate incompatible chunks
+    verify: "test -f migrations/versions/0002_embedding_4096.py && uv run pytest tests/ -q"
+    status: done
+  - id: 4
+    description: Register the hosted Nemotron rerank endpoint and support self-hosted base URLs
+    verify: "uv run pytest tests/test_llm_adapters.py -k reranker -q"
+    status: done
+  - id: 5
+    description: Pause reranking for 300s after a provider failure and fall back to RRF
+    verify: "uv run pytest tests/test_retrieval.py -q"
+    status: done
+  - id: 6
+    description: Let langchain-groq resolve its own endpoint when BASE_URL is unset
+    verify: "uv run pytest tests/test_llm_adapters.py -k groq -q"
+    status: done
+  - id: 7
+    description: Verify LangChain clients against the expected HTTP routes
+    verify: "uv run pytest tests/test_llm_transport.py -q"
+    status: done
+  - id: 8
+    description: Run CI push checks on the default master branch
+    verify: "grep -q 'branches: \\[master\\]' .github/workflows/ci.yml"
+    status: done
+  - id: 9
+    description: Document the embedding-width and rerank decisions
+    verify: "test -f docs/adr/0003-embedding-width-and-ann-indexing.md"
+    status: done
+  - id: 10
+    description: Run the full preflight gate
+    verify: "make preflight"
+    status: done

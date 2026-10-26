@@ -1,5 +1,11 @@
 # Atlas Execution Status
 # Flat story/epic status tracking
 
-stories: {}
-epics: {}
+stories:
+  e01s01:
+    status: done
+    started_at: "2026-10-26T17:42:58+05:30"
+    completed_at: "2026-10-26T17:46:40+05:30"
+
+epics:
+  e01: done

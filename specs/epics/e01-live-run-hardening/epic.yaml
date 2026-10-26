@@ -1,0 +1,12 @@
+id: e01
+title: Live-run hardening — 4096-dim embeddings and hosted reranking
+wsjf: 8.0
+total_bcps: 8
+status: done
+stories:
+  - id: e01s01
+    title: Ship 4096-dim embeddings and hosted Nemotron reranking
+    bcps: 8
+    status: done
+    spec: e01s01-embedding-rerank-fixes.md
+    tasks: e01s01-tasks.yaml

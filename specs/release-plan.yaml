@@ -1,8 +1,23 @@
 # Atlas Release Plan
 # Release index and epic list
 
-version: 0.1.0
-target_date: null
-status: planning
+release:
+  version: "0.1.0"        # mirror only — semantic-release owns the real tag
+  codename: "Live-run hardening"
+  status: in_progress     # planning | in_progress | released
+  semantic_release: true
+  bump_hint: patch        # patch | minor | major — CI decides at merge
 
-epics: []
+epics:
+  - id: e01
+    title: Live-run hardening — 4096-dim embeddings and hosted reranking
+    wsjf: 8.0
+    capsule_dir: epics/e01-live-run-hardening
+
+bugs:
+  total: 5
+  fixed: 5
+  deferred: 0
+  wontfix: 0
+  open: 0
+  registry: specs/bugs/registry.yaml
