@@ -1,4 +1,4 @@
-.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval
+.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval eval-pipeline
 
 # Keep tooling from dropping caches and bytecode into the working tree.
 export PYTHONDONTWRITEBYTECODE := 1
@@ -65,3 +65,10 @@ eval-queries:
 eval:
 	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
 		--queries specs/eval/queries-atlas-repo.jsonl --arms full4096,trunc2048
+
+# Production pipeline: dense SQL vs RRF vs RRF + rerank at several depths.
+eval-pipeline:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
+		--queries specs/eval/queries-atlas-repo.jsonl \
+		--arms full4096,hybrid,hybrid-rerank@50,hybrid-rerank@24,hybrid-rerank@12 \
+		--label hybrid

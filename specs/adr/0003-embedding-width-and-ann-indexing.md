@@ -96,10 +96,20 @@ data — but it is not free:
 
 The gate for a future width change is `scripts/eval_retrieval.py`, run through
 `make eval-db`, `make eval-ingest`, `make eval-queries`, and `make eval`. It
-compares dense arms on recall@k, MRR, nDCG@k, and latency, with a paired
-bootstrap interval over queries. Ground truth is keyed by
-`(document checksum, chunk seq)` so a query set survives re-ingestion; arms are
-`full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]`.
+compares arms on recall@k, MRR, nDCG@k, and latency, with a paired bootstrap
+interval over queries. Ground truth is keyed by
+`(document checksum, chunk seq)` so a query set survives re-ingestion.
+
+Arms come in two families:
+
+- `full4096`, `trunc2048`, `trunc2048-hnsw`, and
+  `reembed:<model>@<dims>[:hnsw]` are dense-only SQL, so an embedding change is
+  measured without fusion or reranking hiding it.
+- `hybrid` and `hybrid-rerank[@<depth>]` run the production `Retriever` (dense
+  + lexical RRF, optionally reranked), so they measure the pipeline users
+  actually hit, latency included. The optional depth overrides
+  `retrieval.rerank_top_k` for that arm. `make eval-pipeline` runs that
+  comparison.
 
 A first run over the repository corpus (112 chunks, 40 generated questions)
 measured:
