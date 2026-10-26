@@ -30,8 +30,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import psycopg
+import numpy as np  # pyright: ignore[reportMissingImports]
+import psycopg  # pyright: ignore[reportMissingImports]
 
 PGCOPY_HEADER = b"PGCOPY\n\xff\r\n\x00" + struct.pack(">II", 0, 0)
 PGCOPY_TRAILER = struct.pack(">h", -1)
