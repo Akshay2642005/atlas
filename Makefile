@@ -16,10 +16,15 @@ format:
 typecheck:
 	uv run mypy src
 
+# mypy's configured import handling hides misuse of third-party APIs; basedpyright
+# reports it. `src` only: the test fakes are deliberately duck-typed.
+pyright:
+	uv run basedpyright src
+
 test:
 	uv run pytest
 
-preflight: lint typecheck test
+preflight: lint typecheck pyright test
 
 migrate:
 	uv run alembic upgrade head

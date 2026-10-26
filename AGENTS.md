@@ -18,7 +18,7 @@ Stack: Python 3.12, FastAPI, SQLAlchemy, Pydantic, Dishka (Frontend TBD)
 | Lint   | `uv run ruff check src/` |
 | Format | `uv run ruff format src/` |
 | Type Check | `uv run mypy src/` |
-| Preflight | `uv run pytest tests/ && uv run ruff check src/ && uv run mypy src/` |
+| Preflight | `make preflight` (ruff + mypy + basedpyright + pytest) |
 | CI     | `gh pr checks` (when a PR is open) |
 
 ## Architecture
