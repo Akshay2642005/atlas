@@ -1,42 +1,51 @@
-"""NVIDIA rerank adapter (NIM /reranking endpoint, non-OpenAI protocol)."""
+"""NVIDIA rerank adapter built on `langchain-nvidia-ai-endpoints`."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
 
-import httpx
+from langchain_core.documents import Document as LangChainDocument
+from langchain_nvidia_ai_endpoints import NVIDIARerank
 
 from atlas_core.config import NvidiaSettings
 from atlas_core.domain.errors import InfraError
 from atlas_core.security.chaos import Chaos
 
+_INDEX_KEY = "atlas_index"
+_SCORE_KEY = "relevance_score"
+
 
 class NvidiaReranker:
     def __init__(self, settings: NvidiaSettings, chaos: Chaos | None = None) -> None:
-        self._settings = settings
         self._chaos = chaos
-        self._http = httpx.AsyncClient(timeout=30.0)
+        self._model = NVIDIARerank(
+            model=settings.rerank_model,
+            api_key=settings.api_key or "not-configured",
+            base_url=settings.base_url,
+            max_batch_size=settings.batch_size,
+            usage_telemetry_enabled=False,
+        )
 
     async def rerank(self, query: str, documents: Sequence[str]) -> list[float]:
+        if not documents:
+            return []
         if self._chaos is not None:
             await self._chaos.step("nvidia.rerank")
-        body: dict[str, Any] = {
-            "model": self._settings.rerank_model,
-            "query": query,
-            "passages": [{"text": doc} for doc in documents],
-        }
+
+        candidates = [
+            LangChainDocument(page_content=text, metadata={_INDEX_KEY: index})
+            for index, text in enumerate(documents)
+        ]
+        # Keep every candidate so scores map back onto the caller's input order.
+        ranker = self._model.model_copy(update={"top_n": len(candidates)})
         try:
-            response = await self._http.post(
-                self._settings.rerank_url,
-                json=body,
-                headers={"Authorization": f"Bearer {self._settings.api_key}"},
-            )
-            response.raise_for_status()
-        except httpx.HTTPError as exc:
+            ranked = await ranker.acompress_documents(candidates, query)
+        except Exception as exc:  # noqa: BLE001 — normalise provider-specific errors
             raise InfraError(f"nvidia.rerank failed: {exc}") from exc
-        payload: dict[str, Any] = response.json()
-        scores = [0.0] * len(documents)
-        for item in payload.get("results", []):
-            scores[int(item["index"])] = float(item.get("relevance_score", 0.0))
+
+        scores = [0.0] * len(candidates)
+        for document in ranked:
+            index = document.metadata.get(_INDEX_KEY)
+            if isinstance(index, int) and 0 <= index < len(scores):
+                scores[index] = float(document.metadata.get(_SCORE_KEY, 0.0))
         return scores

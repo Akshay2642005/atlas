@@ -1,17 +1,10 @@
-"""NVIDIA NIM embedding adapter (OpenAI-compatible embeddings endpoint)."""
+"""NVIDIA NIM embedding adapter built on `langchain-nvidia-ai-endpoints`."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from itertools import batched
 
-from openai import APIError, AsyncOpenAI, RateLimitError
-from tenacity import (
-    AsyncRetrying,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential_jitter,
-)
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 
 from atlas_core.config import NvidiaSettings
 from atlas_core.domain.errors import InfraError
@@ -23,33 +16,26 @@ class NvidiaEmbedder:
     def __init__(self, settings: NvidiaSettings, chaos: Chaos | None = None) -> None:
         self._settings = settings
         self._chaos = chaos
-        self._client = AsyncOpenAI(api_key=settings.api_key, base_url=settings.base_url, timeout=30.0)
+        self._model = NVIDIAEmbeddings(
+            model=settings.embedding_model,
+            api_key=settings.api_key or "not-configured",
+            base_url=settings.base_url,
+            truncate=settings.truncate,
+            max_batch_size=settings.batch_size,
+            usage_telemetry_enabled=False,
+        )
 
     async def embed(self, texts: Sequence[str], kind: EmbedKind) -> list[list[float]]:
+        if not texts:
+            return []
         if self._chaos is not None:
             await self._chaos.step("nvidia.embed")
-        out: list[list[float]] = []
-        for batch in batched(texts, self._settings.batch_size):
-            response = None
-            try:
-                async for attempt in AsyncRetrying(
-                    stop=stop_after_attempt(4),
-                    wait=wait_exponential_jitter(initial=1, max=8),
-                    retry=retry_if_exception_type(RateLimitError),
-                    reraise=True,
-                ):
-                    with attempt:
-                        response = await self._client.embeddings.create(
-                            model=self._settings.embedding_model,
-                            input=list(batch),
-                            extra_body={"input_type": kind.value, "truncate": self._settings.truncate},
-                        )
-                if response is None:
-                    raise InfraError("nvidia.embed failed: no response")
-                out.extend([d.embedding for d in response.data])
-            except APIError as exc:
-                raise InfraError(f"nvidia.embed failed: {exc}") from exc
-        return out
+        try:
+            if kind is EmbedKind.QUERY:
+                return [await self._model.aembed_query(text) for text in texts]
+            return await self._model.aembed_documents(list(texts))
+        except Exception as exc:  # noqa: BLE001 — normalise provider-specific errors
+            raise InfraError(f"nvidia.embed failed: {exc}") from exc
 
     @property
     def dimensions(self) -> int:

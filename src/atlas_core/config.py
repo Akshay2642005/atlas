@@ -9,24 +9,45 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class ChatSettings(BaseModel):
+    """Provider-independent chat behaviour. `provider` selects the adapter."""
+
+    provider: Literal["groq", "openai", "anthropic", "nvidia"] = "groq"
+    temperature: float = 0.2
+    max_tokens: int = 1024
+    request_timeout: float = 60.0
+    max_retries: int = 2
+
+
 class GroqSettings(BaseModel):
     api_key: str = ""
     base_url: str = "https://api.groq.com/openai/v1"
     model: str = "llama-3.3-70b-versatile"
-    temperature: float = 0.2
-    max_tokens: int = 1024
-    request_timeout: float = 60.0
+
+
+class OpenAISettings(BaseModel):
+    """OpenAI or any OpenAI-compatible endpoint (set `base_url`)."""
+
+    api_key: str = ""
+    base_url: str = "https://api.openai.com/v1"
+    model: str = "gpt-4o-mini"
+
+
+class AnthropicSettings(BaseModel):
+    api_key: str = ""
+    base_url: str = "https://api.anthropic.com"
+    model: str = "claude-haiku-4-5-20251001"
 
 
 class NvidiaSettings(BaseModel):
     api_key: str = ""
     base_url: str = "https://integrate.api.nvidia.com/v1"
+    chat_model: str = "meta/llama-3.1-8b-instruct"
     embedding_model: str = "nvidia/nv-embedqa-e5-v5"
     embedding_dimensions: int = 1024
     truncate: Literal["NONE", "END", "START"] = "END"
     batch_size: int = 32
-    rerank_url: str = "https://ai.api.nvidia.com/v1/reranking"
-    rerank_model: str = "nvidia/nv-rerankqa-mistral-4b-v3"
+    rerank_model: str = "nvidia/llama-3.2-nv-rerankqa-1b-v1"
 
 
 class PostgresSettings(BaseModel):
@@ -103,7 +124,10 @@ class AtlasSettings(BaseSettings):
     env: Literal["local", "dev", "staging", "prod"] = "local"
     app_name: str = "atlas"
 
+    chat: ChatSettings = Field(default_factory=ChatSettings)
     groq: GroqSettings = Field(default_factory=GroqSettings)
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
     nvidia: NvidiaSettings = Field(default_factory=NvidiaSettings)
     postgres: PostgresSettings = Field(default_factory=PostgresSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
