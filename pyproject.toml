@@ -53,11 +53,16 @@ api = "atlas_api.main:run"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-q"
+# -p no:cacheprovider: keep the working tree free of .pytest_cache/
+addopts = "-q -p no:cacheprovider"
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
+# No .mypy_cache/ in the tree: mypy writes ~92 MB of sqlite cache even with
+# incremental off, so route it at /dev/null and accept a full recheck (~5.5s).
+incremental = false
+cache_dir = "/dev/null"
 ignore_missing_imports = true
 disallow_untyped_decorators = false
 warn_unused_ignores = false
