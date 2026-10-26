@@ -8,11 +8,11 @@ from atlas_core.config import AtlasSettings
 from atlas_core.domain.ports import (
     ChatPort,
     EmbedderPort,
+    InjectionGuardPort,
     PiiDetectorPort,
+    RerankerPort,
     VectorRepositoryPort,
 )
-from atlas_core.security import HeuristicInjectionGuard
-from atlas_llm.nvidia_rerank import NvidiaReranker
 from atlas_retrieval.answerer import AnswerService
 from atlas_retrieval.retriever import Retriever
 
@@ -24,7 +24,7 @@ class RetrievalProvider(Provider):
         settings: AtlasSettings,
         vectors: VectorRepositoryPort,
         embedder: EmbedderPort,
-        reranker: NvidiaReranker,
+        reranker: RerankerPort,
     ) -> Retriever:
         return Retriever(
             settings=settings.retrieval,
@@ -40,7 +40,7 @@ class RetrievalProvider(Provider):
         chat: ChatPort,
         retriever: Retriever,
         pii: PiiDetectorPort,
-        guard: HeuristicInjectionGuard,
+        guard: InjectionGuardPort,
     ) -> AnswerService:
         return AnswerService(
             settings=settings.answer,

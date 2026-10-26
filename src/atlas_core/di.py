@@ -5,6 +5,7 @@ from __future__ import annotations
 from dishka import Provider, Scope, provide
 
 from atlas_core.config import AtlasSettings, load_settings
+from atlas_core.domain.ports import InjectionGuardPort, PiiDetectorPort
 from atlas_core.security.chaos import Chaos
 from atlas_core.security.injection import HeuristicInjectionGuard
 from atlas_core.security.pii import RegexPiiDetector
@@ -25,11 +26,11 @@ class CoreProvider(Provider):
         return Chaos(settings.chaos)
 
     @provide(scope=Scope.APP)
-    def pii_detector(self) -> RegexPiiDetector:
+    def pii_detector(self) -> PiiDetectorPort:
         return RegexPiiDetector()
 
     @provide(scope=Scope.APP)
-    def injection_guard(self, settings: AtlasSettings) -> HeuristicInjectionGuard:
+    def injection_guard(self, settings: AtlasSettings) -> InjectionGuardPort:
         return HeuristicInjectionGuard()
 
     @provide(scope=Scope.APP)

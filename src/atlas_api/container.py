@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
 
-from arq import create_pool
-from arq.connections import ArqRedis, RedisSettings
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
+from redis.asyncio import Redis
 
 from atlas_core.config import AtlasSettings
 from atlas_core.di import providers as core_providers
@@ -16,6 +16,9 @@ from atlas_ingest import providers as ingest_providers
 from atlas_llm import providers as llm_providers
 from atlas_retrieval import providers as retrieval_providers
 from atlas_vector import providers as vector_providers
+
+if TYPE_CHECKING:
+    from arq.connections import ArqRedis
 
 
 class _ArqQueue(QueuePort):
@@ -33,7 +36,16 @@ class _ArqQueue(QueuePort):
 
 class ApiProvider(Provider):
     @provide(scope=Scope.APP)
+    async def redis(self, settings: AtlasSettings) -> AsyncIterator[Redis]:
+        client = Redis.from_url(settings.redis.url, decode_responses=True)
+        yield client
+        await client.aclose()
+
+    @provide(scope=Scope.APP)
     async def queue(self, settings: AtlasSettings) -> AsyncIterator[QueuePort]:
+        from arq import create_pool
+        from arq.connections import RedisSettings
+
         pool = await create_pool(RedisSettings.from_dsn(settings.redis.url))
         yield _ArqQueue(pool)
         await pool.aclose()

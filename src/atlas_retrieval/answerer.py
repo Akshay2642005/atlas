@@ -11,8 +11,8 @@ import structlog
 
 from atlas_core.config import AnswerSettings, SecuritySettings
 from atlas_core.domain.models import Answer, Citation, Query, TraceStep
-from atlas_core.domain.ports import ChatMessage, ChatPort, PiiDetectorPort
-from atlas_core.security import HeuristicInjectionGuard, mask_text
+from atlas_core.domain.ports import ChatMessage, ChatPort, InjectionGuardPort, PiiDetectorPort
+from atlas_core.security import mask_text
 from atlas_retrieval.retriever import RetrievalOutcome, Retriever
 
 _log = structlog.get_logger(__name__)
@@ -27,7 +27,7 @@ class AnswerService:
         chat: ChatPort,
         retriever: Retriever,
         pii: PiiDetectorPort,
-        guard: HeuristicInjectionGuard,
+        guard: InjectionGuardPort,
         security: SecuritySettings,
     ) -> None:
         self._settings = settings
@@ -55,12 +55,25 @@ class AnswerService:
         context, citations = self._build_context(outcome)
         messages = [ChatMessage("system", self._settings.system_prompt + context), ChatMessage("user", query.text)]
         parts: list[str] = []
-        async for delta in self._chat.stream(messages):
+        async for delta in self._chat.stream(messages):  # pyright: ignore[reportGeneralTypeIssues]
             parts.append(delta)
             yield {"type": "delta", "text": delta}
         text = "".join(parts)
         answer = self._finalize(text, citations, outcome.trace, f"streamed {len(parts)} deltas")
-        yield {"type": "final", "answer": answer.text, "citations": list(answer.citations)}  # type: ignore[list-item]
+        yield {
+            "type": "final",
+            "answer": answer.text,
+            "citations": [
+                {
+                    "document_id": str(c.document_id),
+                    "chunk_id": str(c.chunk_id),
+                    "seq": c.seq,
+                    "score": c.score,
+                }
+                for c in answer.citations
+            ],
+            "trace": [{"name": t.name, "detail": t.detail} for t in answer.trace],
+        }
 
     def _build_context(self, outcome: RetrievalOutcome) -> tuple[str, list[Citation]]:
         blocks = [f"[{i + 1}] {ctx.text}\n(source={ctx.document_id})" for i, ctx in enumerate(outcome.contexts)]

@@ -5,8 +5,6 @@ from __future__ import annotations
 import io
 import re
 
-import pypdf
-
 from atlas_core.domain.errors import IngestError
 
 MIME_PLAIN = "text/plain"
@@ -19,6 +17,8 @@ _TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _pdf_to_text(data: bytes) -> str:
+    import pypdf  # imported lazily: only PDF ingestion needs it
+
     try:
         reader = pypdf.PdfReader(io.BytesIO(data))
     except Exception as exc:  # noqa: BLE001 — pypdf raises many exceptions

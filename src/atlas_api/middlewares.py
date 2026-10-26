@@ -5,10 +5,10 @@ from __future__ import annotations
 import re
 import time
 import uuid
-from typing import Annotated
+from typing import cast
 
 import structlog
-from dishka.integrations.fastapi import FromDishka
+from dishka import AsyncContainer
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
@@ -43,7 +43,7 @@ def _extract_api_key(request: Request) -> str:
     return ""
 
 
-def require_tenant(request: Request, settings: Annotated[AtlasSettings, FromDishka]) -> TenantKey:
+def require_tenant(request: Request, settings: AtlasSettings) -> TenantKey:
     api_key = _extract_api_key(request)
     if not api_key:
         raise HTTPException(
@@ -59,8 +59,8 @@ def require_tenant(request: Request, settings: Annotated[AtlasSettings, FromDish
 
 async def enforce_rate_limit(
     tenant_key: TenantKey,
-    redis: Annotated[Redis, FromDishka],
-    settings: Annotated[AtlasSettings, FromDishka],
+    redis: Redis,
+    settings: AtlasSettings,
 ) -> None:
     """Sliding-window counter keyed by API-key prefix; raises typed 429 errors."""
     window = 60
@@ -70,7 +70,18 @@ async def enforce_rate_limit(
     pipe.expire(bucket, window * 2)
     count, _ = await pipe.execute()
     if int(count) > settings.security.rate_limit_rpm:
-        raise RateLimitExceeded("rate limit exceeded", retry_after=1.0)
+        retry_after = window - (time.time() % window)
+        raise RateLimitExceeded("rate limit exceeded", retry_after=retry_after)
+
+
+async def authenticated(request: Request) -> TenantKey:
+    """Single dependency: resolve tenant from API key, then enforce its rate limit."""
+    container = cast(AsyncContainer, request.app.state.container)
+    settings = await container.get(AtlasSettings)
+    redis = await container.get(Redis)
+    tenant_key = require_tenant(request, settings)
+    await enforce_rate_limit(tenant_key=tenant_key, redis=redis, settings=settings)
+    return tenant_key
 
 
 async def request_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
