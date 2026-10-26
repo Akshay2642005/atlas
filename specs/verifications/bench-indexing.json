@@ -1,0 +1,229 @@
+{
+  "config": {
+    "rows": [
+      10000,
+      50000,
+      200000
+    ],
+    "full_dim": 4096,
+    "half_dim": 2048,
+    "clusters": 64,
+    "noise": 0.15,
+    "queries": 100,
+    "top_k": 10,
+    "ef_search": [
+      40,
+      100
+    ],
+    "run_id": "ba89cf4c",
+    "storage_note": "Table sizes exclude indexes; HNSW is reported separately."
+  },
+  "sizes": [
+    {
+      "rows": 10000,
+      "seed_v4096_seconds": 1.16,
+      "v4096_table_bytes": 171966464,
+      "v4096_exact": {
+        "p50_ms": 46.648,
+        "p95_ms": 49.934,
+        "mean_ms": 47.145,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h4096_seconds": 0.62,
+      "h4096_table_bytes": 86564864,
+      "h4096_exact": {
+        "p50_ms": 15.058,
+        "p95_ms": 16.164,
+        "mean_ms": 15.154,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h2048_seconds": 0.31,
+      "hnsw_build_seconds": 1.9,
+      "h2048_table_bytes": 55975936,
+      "hnsw_index_bytes": 81928192,
+      "h2048_exact": {
+        "p50_ms": 10.959,
+        "p95_ms": 11.626,
+        "mean_ms": 11.035,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "h2048_hnsw": {
+        "ef_search_40": {
+          "p50_ms": 0.197,
+          "p95_ms": 0.241,
+          "mean_ms": 0.196,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        },
+        "ef_search_100": {
+          "p50_ms": 0.207,
+          "p95_ms": 0.241,
+          "mean_ms": 0.206,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        }
+      }
+    },
+    {
+      "rows": 50000,
+      "seed_v4096_seconds": 5.34,
+      "v4096_table_bytes": 859430912,
+      "v4096_exact": {
+        "p50_ms": 226.831,
+        "p95_ms": 237.563,
+        "mean_ms": 228.169,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h4096_seconds": 3.3,
+      "h4096_table_bytes": 432439296,
+      "h4096_exact": {
+        "p50_ms": 139.889,
+        "p95_ms": 163.059,
+        "mean_ms": 141.897,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h2048_seconds": 1.68,
+      "hnsw_build_seconds": 17.02,
+      "h2048_table_bytes": 279601152,
+      "hnsw_index_bytes": 409608192,
+      "h2048_exact": {
+        "p50_ms": 97.487,
+        "p95_ms": 105.718,
+        "mean_ms": 98.204,
+        "plan_nodes": [
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "h2048_hnsw": {
+        "ef_search_40": {
+          "p50_ms": 1.227,
+          "p95_ms": 2.87,
+          "mean_ms": 1.554,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        },
+        "ef_search_100": {
+          "p50_ms": 1.198,
+          "p95_ms": 1.421,
+          "mean_ms": 1.041,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        }
+      }
+    },
+    {
+      "rows": 200000,
+      "seed_v4096_seconds": 21.88,
+      "v4096_table_bytes": 3437412352,
+      "v4096_exact": {
+        "p50_ms": 569.463,
+        "p95_ms": 666.059,
+        "mean_ms": 588.62,
+        "plan_nodes": [
+          "Gather Merge",
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h4096_seconds": 13.62,
+      "h4096_table_bytes": 1729503232,
+      "h4096_exact": {
+        "p50_ms": 354.888,
+        "p95_ms": 461.482,
+        "mean_ms": 369.957,
+        "plan_nodes": [
+          "Gather Merge",
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "seed_h2048_seconds": 7.75,
+      "hnsw_build_seconds": 113.16,
+      "h2048_table_bytes": 1118167040,
+      "hnsw_index_bytes": 1638408192,
+      "h2048_exact": {
+        "p50_ms": 257.151,
+        "p95_ms": 285.049,
+        "mean_ms": 262.242,
+        "plan_nodes": [
+          "Gather Merge",
+          "Limit",
+          "Seq Scan",
+          "Sort"
+        ]
+      },
+      "h2048_hnsw": {
+        "ef_search_40": {
+          "p50_ms": 3.575,
+          "p95_ms": 6.774,
+          "mean_ms": 3.754,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        },
+        "ef_search_100": {
+          "p50_ms": 3.623,
+          "p95_ms": 4.902,
+          "mean_ms": 3.546,
+          "plan_nodes": [
+            "Index Scan",
+            "Limit"
+          ],
+          "recall_at_10": 1.0
+        }
+      }
+    }
+  ],
+  "environment": {
+    "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2)",
+    "server_version_num": 170011,
+    "pgvector_version": "0.8.7",
+    "huge_pages": "try",
+    "settings": {
+      "shared_buffers": "163848kB",
+      "maintenance_work_mem": "65536kB",
+      "max_parallel_workers_per_gather": "2",
+      "max_parallel_maintenance_workers": "2",
+      "work_mem": "4096kB",
+      "effective_cache_size": "5242888kB"
+    }
+  }
+}

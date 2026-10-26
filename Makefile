@@ -1,4 +1,4 @@
-.PHONY: sync lint format typecheck test preflight migrate api worker up down logs
+.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench
 
 # Keep tooling from dropping caches and bytecode into the working tree.
 export PYTHONDONTWRITEBYTECODE := 1
@@ -38,3 +38,8 @@ down:
 
 logs:
 	docker compose logs -f api worker
+
+# Seed a throwaway database with synthetic vectors and compare exact scans
+# against halfvec HNSW. Requires the atlas-postgres container to be running.
+bench:
+	uv run --with "psycopg[binary]" --with numpy python scripts/bench_indexing.py
