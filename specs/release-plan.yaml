@@ -4,7 +4,11 @@
 release:
   version: "0.1.0"        # mirror only — semantic-release owns the real tag
   codename: "Live-run hardening"
-  status: in_progress     # planning | in_progress | released
+  status: released
+  released_at: "2026-10-26"
+  # Complete on master, but there is no git remote yet, so CI has never run and
+  # semantic-release has never tagged or published this version.
+  published: false
   semantic_release: true
   bump_hint: patch        # patch | minor | major — CI decides at merge
 
@@ -13,6 +17,12 @@ epics:
     title: Live-run hardening — 4096-dim embeddings and hosted reranking
     wsjf: 8.0
     capsule_dir: epics/e01-live-run-hardening
+    status: done
+  - id: e02
+    title: Retrieval quality — measured rerank depth, tenant-scale width, and a real type gate
+    wsjf: 9.0
+    capsule_dir: epics/e02-retrieval-quality
+    status: planned
 
 bugs:
   total: 5

@@ -1,0 +1,21 @@
+id: e02
+title: Retrieval quality — measured rerank depth, tenant-scale width, and a real type gate
+wsjf: 9.0
+status: planned
+
+# Not sliced yet. The candidate outcomes below are what the evidence so far
+# points at; `plan-work` turns them into stories and tasks.
+notes: |
+  Ranking, not embedding width, is the open quality lever: the dense baseline
+  recalls the right chunk 92.5% of the time but ranks it first only 45% of the
+  time. `hybrid` and `hybrid-rerank` arms now measure the production pipeline.
+
+  1. Pick `RETRIEVAL__RERANK_TOP_K` from measured nDCG and latency.
+     Latency is priced (specs/verifications/BENCH-rerank-depth.md: 50 -> 1.62s,
+     24 -> 0.93s, 12 -> 0.53s); quality is not yet measured.
+  2. Re-run the 4096 vs 2048 vs 1B width comparison on a tenant-scale corpus.
+     The 112-chunk repo corpus cannot separate the arms from query noise.
+  3. Make the type gate real: `basedpyright src` now runs in preflight and CI,
+     but CI has never executed because the repository has no remote.
+
+stories: []
