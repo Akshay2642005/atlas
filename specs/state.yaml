@@ -8,9 +8,8 @@ session:
   active_epic_id: null
   active_story_id: null
   handoff:
-    last_step_completed: "e01s01 (live-run hardening) recorded as done from commits 4737005..91c8c23; work merged to master."
-    open_decisions:
-      - "Retrieval at scale: keep vector(4096) with an exact cosine scan, switch to a 2048-dim model plus halfvec HNSW, or add a binary-quantized two-stage index. Settle it with a 10k-50k chunk benchmark before changing the schema."
+    last_step_completed: "e01s01 (live-run hardening) recorded as done from commits 4737005..91c8c23; work merged to master. Embedding width settled: keep 4096/nemotron-3.5-embed-8b, store halfvec(4096), no ANN index (ADR 0003 + specs/verifications/BENCH-indexing.md)."
+    open_decisions: []
     required_reading:
       - CONVENTIONS.md
       - docs/adr/0003-embedding-width-and-ann-indexing.md

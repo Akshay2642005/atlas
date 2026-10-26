@@ -114,7 +114,7 @@ async def test_embedder_routes_kind_to_langchain_methods() -> None:
 
 
 def test_embedder_sends_configured_dimensions_to_the_model() -> None:
-    # The schema is vector(4096); a model returning its native width instead
+    # The schema is halfvec(4096); a model returning its native width instead
     # would only fail at INSERT time, so the setting must reach the client.
     assert NvidiaEmbedder(NvidiaSettings())._model.dimensions == 4096  # pyright: ignore[reportPrivateUsage]
     custom = NvidiaEmbedder(NvidiaSettings(embedding_dimensions=2048))
