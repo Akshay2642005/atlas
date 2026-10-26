@@ -233,3 +233,6 @@ __marimo__/
 
 # MacOS
 .DS_Store
+
+# Local retrieval-evaluation embedding cache
+.eval-cache/
