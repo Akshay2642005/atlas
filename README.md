@@ -24,7 +24,7 @@ src/
   atlas_api/         FastAPI app, auth/rate limit deps, middlewares, routes, schemas
   atlas_worker/      arq worker + ingestion tasks
 tests/               unit + API + pipeline tests (no network, no DB)
-migrations/          Alembic (pgvector extension, HNSW + GIN indexes)
+migrations/          Alembic (pgvector extension, GIN full-text index)
 ```
 
 Dependencies point inward: `atlas_core` knows nothing about FastAPI, LangChain, or Postgres. Everything crosses the boundary through `Protocol` ports, registered in Dishka **by port type** (protocols, not concrete classes).
@@ -80,10 +80,10 @@ All settings are typed in `atlas_core/config.py`; nested env groups use `__`:
 | Group | Notable fields |
 |---|---|
 | `CHAT__` | `PROVIDER` (`groq\|openai\|anthropic\|nvidia`, default `groq`), `TEMPERATURE`, `MAX_TOKENS`, `REQUEST_TIMEOUT`, `MAX_RETRIES` |
-| `GROQ__` | `API_KEY`, `MODEL` (default `llama-3.3-70b-versatile`), `BASE_URL` |
+| `GROQ__` | `API_KEY`, `MODEL` (default `llama-3.3-70b-versatile`), optional `BASE_URL` (proxy only; the SDK supplies its own) |
 | `OPENAI__` | `API_KEY`, `MODEL` (`gpt-4o-mini`), `BASE_URL` — set this to any OpenAI-compatible `/v1` root |
 | `ANTHROPIC__` | `API_KEY`, `MODEL` (`claude-haiku-4-5-20251001`), `BASE_URL` |
-| `NVIDIA__` | `API_KEY`, `CHAT_MODEL` (`meta/llama-3.1-8b-instruct`), `EMBEDDING_MODEL` (`nvidia/nv-embedqa-e5-v5`, 1024 dims), `RERANK_MODEL` |
+| `NVIDIA__` | `API_KEY`, `CHAT_MODEL` (`meta/llama-3.1-8b-instruct`), `EMBEDDING_MODEL` (`nvidia/nemotron-3.5-embed-8b`, 4096 dims), `EMBEDDING_DIMENSIONS` (default `4096`), `RERANK_MODEL` (`nvidia/nemotron-3.5-rerank-8b`), `RERANK_BASE_URL` (self-hosted NIM/vLLM only) |
 | `POSTGRES__` | `URL` (asyncpg), pool + statement timeout |
 | `REDIS__` | queue + rate limiter |
 | `CHUNKING__` | `CHUNK_SIZE_TOKENS`, `OVERLAP_TOKENS`, `ENABLE_SEMANTIC_CHUNKS` |
@@ -91,6 +91,12 @@ All settings are typed in `atlas_core/config.py`; nested env groups use `__`:
 | `SECURITY__` | `API_KEYS`, `PII_POLICY` (`off|mask`), `RATE_LIMIT_RPM`, `DISABLE_INJECTION_GUARD` |
 | `OBSERVABILITY__` | `LOG_LEVEL`, `LOG_JSON`, `OTLP_ENDPOINT` (empty = tracing off) |
 | `CHAOS__` | `ENABLED`, `FAILURE_RATE`, `SLEEP_SECONDS` — never enable in prod |
+
+### Embedding width and indexing
+
+Embeddings are 4096-dimensional (`vector(4096)`). pgvector caps ANN indexes at 2,000 dimensions for `vector` and 4,000 for `halfvec`, so Atlas does **not** create an HNSW/IVFFlat index: dense retrieval runs an exact cosine scan, while lexical retrieval stays GIN-indexed. That is exact but scales linearly with each tenant's chunk count; see [ADR 0003](docs/adr/0003-embedding-width-and-ann-indexing.md) for the alternatives (a ≤2,000-dim model, `halfvec`, or a binary-quantized expression index). The 4096-native `nemotron-3.5-embed-8b` is the only 4096-dim model on the NVIDIA key used here and has variable cold-start latency; the adapter allows 180s and retries transient failures once.
+
+Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.
 
 ## Chat providers
 
@@ -121,7 +127,7 @@ Both containers run `uv sync --frozen --no-dev` and use the same lockfile. OTLP 
 - Set `PII_POLICY=mask` for regulated tenants and review masked source retention (`document_contents` stores raw bytes — move to object storage if your policy forbids it).
 - Keep `CHAOS__ENABLED=false` and `OBSERVABILITY__LOG_JSON=true` in prod.
 - Add per-tenant budgets/alerts on whichever provider chat traffic uses; adapters retry transient errors through the LangChain client's `max_retries` (`CHAT__MAX_RETRIES`).
-- Rerank: `NVIDIA__BASE_URL` must be the NIM deployment root or its `/v1` path (the LangChain client derives the ranking route). Validate the model name against your account/region before rollout.
+- Rerank: leave `NVIDIA__RERANK_BASE_URL` empty for the hosted `nemotron-3.5-rerank-8b` endpoint, or set it to a self-hosted NIM/vLLM deployment root (e.g. `http://localhost:8000/v1`); the LangChain client derives `/ranking` from that root. Validate the model name against your account/region before rollout.
 
 ## Development
 

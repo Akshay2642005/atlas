@@ -35,15 +35,10 @@ class DocumentRow(Base):
 
 class ChunkRow(Base):
     __tablename__ = "chunks"
-    __table_args__ = (
-        Index(
-            "chunks_hnsw",
-            "embedding",
-            postgresql_using="hnsw",
-            postgresql_ops={"embedding": "vector_cosine_ops"},
-        ),
-        Index("chunks_tsv_gin", "tsv", postgresql_using="gin"),
-    )
+    # No HNSW/IVFFlat index: pgvector caps `vector` at 2,000 dimensions and
+    # `halfvec` at 4,000 for ANN indexes, so a 4096-dim column can only be
+    # searched exactly. Revisit if the embedding width drops to <= 2,000.
+    __table_args__ = (Index("chunks_tsv_gin", "tsv", postgresql_using="gin"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     document_id: Mapped[uuid.UUID] = mapped_column(
@@ -54,7 +49,7 @@ class ChunkRow(Base):
     seq: Mapped[int] = mapped_column(nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     token_count: Mapped[int] = mapped_column(nullable=False)
-    embedding: Mapped[Any] = mapped_column(Vector(1024), nullable=False)
+    embedding: Mapped[Any] = mapped_column(Vector(4096), nullable=False)
     tsv: Mapped[Any] = mapped_column(
         TSVECTOR, Computed("to_tsvector('english', text)", persisted=True), nullable=False
     )

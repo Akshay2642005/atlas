@@ -212,5 +212,7 @@ async def test_embedder_and_reranker_hit_nvidia_routes() -> None:
         ]
         assert await embedder.embed(["q"], EmbedKind.QUERY) == [[0.0, 0.5]]
 
-        reranker = NvidiaReranker(NvidiaSettings(api_key="k", base_url=base, rerank_model="m"))
+        reranker = NvidiaReranker(
+            NvidiaSettings(api_key="k", rerank_base_url=base, rerank_model="m")
+        )
         assert await reranker.rerank("q", ["a", "b", "c"]) == [1.0, 0.5, 1 / 3]

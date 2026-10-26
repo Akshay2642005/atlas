@@ -10,6 +10,7 @@ from langchain_nvidia_ai_endpoints import NVIDIARerank
 from atlas_core.config import NvidiaSettings
 from atlas_core.domain.errors import InfraError
 from atlas_core.security.chaos import Chaos
+from atlas_llm.nvidia_registry import register_hosted_rerank
 
 _INDEX_KEY = "atlas_index"
 _SCORE_KEY = "relevance_score"
@@ -18,12 +19,19 @@ _SCORE_KEY = "relevance_score"
 class NvidiaReranker:
     def __init__(self, settings: NvidiaSettings, chaos: Chaos | None = None) -> None:
         self._chaos = chaos
+        client_options: dict[str, object] = {}
+        if settings.rerank_base_url:
+            # Self-hosted NIM/vLLM exposes the ranking route under its own root.
+            client_options["base_url"] = settings.rerank_base_url
+        else:
+            register_hosted_rerank(settings.rerank_model)
+
         self._model = NVIDIARerank(
             model=settings.rerank_model,
             api_key=settings.api_key or "not-configured",
-            base_url=settings.base_url,
             max_batch_size=settings.batch_size,
             usage_telemetry_enabled=False,
+            **client_options,
         )
 
     async def rerank(self, query: str, documents: Sequence[str]) -> list[float]:

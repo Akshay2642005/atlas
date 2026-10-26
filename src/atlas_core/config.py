@@ -21,7 +21,10 @@ class ChatSettings(BaseModel):
 
 class GroqSettings(BaseModel):
     api_key: str = ""
-    base_url: str = "https://api.groq.com/openai/v1"
+    # Unset by default: `langchain-groq` already knows the Groq endpoint, so a
+    # configured root only helps when routing through a proxy. Note the SDK
+    # appends /openai/v1 itself, so do not include that path here.
+    base_url: str | None = None
     model: str = "llama-3.3-70b-versatile"
 
 
@@ -43,11 +46,22 @@ class NvidiaSettings(BaseModel):
     api_key: str = ""
     base_url: str = "https://integrate.api.nvidia.com/v1"
     chat_model: str = "meta/llama-3.1-8b-instruct"
-    embedding_model: str = "nvidia/nv-embedqa-e5-v5"
-    embedding_dimensions: int = 1024
+    # 4096-native: `nv-embedqa-e5-v5` is EOL (410 Gone since 2026-08-25) and
+    # `dimensions` can only truncate, never widen, a model's output.
+    embedding_model: str = "nvidia/nemotron-3.5-embed-8b"
+    embedding_dimensions: int = 4096
+    # The 8b embedder can take >60s on a cold NIM start, which is the client's
+    # built-in read timeout. Give the first request enough headroom to finish.
+    embedding_timeout_seconds: float = 180.0
     truncate: Literal["NONE", "END", "START"] = "END"
     batch_size: int = 32
-    rerank_model: str = "nvidia/llama-3.2-nv-rerankqa-1b-v1"
+    # Hosted Nemotron reranking is served from the retrieval API, not the
+    # OpenAI-compatible `/v1` root used for chat and embeddings.
+    rerank_model: str = "nvidia/nemotron-3.5-rerank-8b"
+    # Empty selects the hosted endpoint registered for `rerank_model` above.
+    # Set this to a NIM deployment root (e.g. `http://localhost:8000/v1`) to
+    # rerank against self-hosted NIM/vLLM instead.
+    rerank_base_url: str = ""
 
 
 class PostgresSettings(BaseModel):
