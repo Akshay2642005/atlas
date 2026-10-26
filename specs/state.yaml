@@ -8,11 +8,13 @@ session:
   active_epic_id: null
   active_story_id: null
   handoff:
-    last_step_completed: "e01s01 (live-run hardening) recorded as done from commits 4737005..91c8c23; work merged to master. Embedding width settled: keep 4096/nemotron-3.5-embed-8b, store halfvec(4096), no ANN index (ADR 0003 + specs/verifications/BENCH-indexing.md)."
-    open_decisions: []
+    last_step_completed: "e01s01 (live-run hardening) recorded as done from commits 4737005..91c8c23; work merged to master. Embedding width settled: keep 4096/nemotron-3.5-embed-8b, store halfvec(4096), no ANN index (ADR 0003 + specs/verifications/BENCH-indexing.md). Retrieval evaluation harness built and committed; first corpus run recorded in specs/verifications/EVAL-retrieval.md and EVAL-retrieval-1b-width.md."
+    open_decisions:
+      - "2048 truncation and 1B model swap are not distinguishable from noise on the 112-chunk repo corpus; gate them on an evaluation over real tenant data before changing defaults."
     required_reading:
       - CONVENTIONS.md
       - specs/adr/0003-embedding-width-and-ann-indexing.md
+      - specs/verifications/EVAL-retrieval.md
     next_skill: null
     timestamp: "2026-10-26"
 
