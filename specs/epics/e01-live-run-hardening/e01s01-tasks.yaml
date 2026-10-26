@@ -37,7 +37,7 @@ tasks:
     status: done
   - id: 9
     description: Document the embedding-width and rerank decisions
-    verify: "test -f docs/adr/0003-embedding-width-and-ann-indexing.md"
+    verify: "test -f specs/adr/0003-embedding-width-and-ann-indexing.md"
     status: done
   - id: 10
     description: Run the full preflight gate

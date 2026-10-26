@@ -74,7 +74,7 @@ Scenario: Groq uses its SDK endpoint
 - Rerank gets its own `RERANK_BASE_URL`; the OpenAI-compatible
   `NVIDIA__BASE_URL` is not reused because the hosted retrieval route differs.
 - 4096 dimensions are kept over ANN indexing. See
-  [ADR 0003](../../../docs/adr/0003-embedding-width-and-ann-indexing.md).
+  [ADR 0003](../../adr/0003-embedding-width-and-ann-indexing.md).
 
 ## Implementation summary
 

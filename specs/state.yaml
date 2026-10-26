@@ -12,7 +12,7 @@ session:
     open_decisions: []
     required_reading:
       - CONVENTIONS.md
-      - docs/adr/0003-embedding-width-and-ann-indexing.md
+      - specs/adr/0003-embedding-width-and-ann-indexing.md
     next_skill: null
     timestamp: "2026-10-26"
 
