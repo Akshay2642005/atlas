@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from typing import Any
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import ColumnElement, delete, select, update
 from sqlalchemy import func as safunc
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -16,6 +17,22 @@ from atlas_vector.engine import SessionFactory, create_engine_and_session
 from atlas_vector.schema import ChunkRow, DocumentContentRow, DocumentRow
 
 SessionFactoryAlias = SessionFactory
+
+
+def _lexical_tsquery(text: str) -> ColumnElement[Any]:
+    """OR the question's lexemes into a tsquery.
+
+    `plainto_tsquery` ANDs every term, so a natural-language question matches a
+    chunk only if that chunk contains all of them - which is nothing in
+    practice, leaving the lexical branch empty and RRF with a single list. OR
+    the lexemes instead so the branch contributes real candidates.
+
+    `ts_rank_cd` then scores by how many of the terms a chunk covers.
+    """
+    lexemes = safunc.tsvector_to_array(safunc.to_tsvector("english", text))
+    terms = safunc.array_to_string(lexemes, " | ")
+    # A stopword-only input yields "", which `to_tsquery` rejects as invalid.
+    return safunc.to_tsquery("english", safunc.coalesce(safunc.nullif(terms, ""), "atlasempty"))
 
 
 def _chunk(row: ChunkRow) -> Chunk:
@@ -81,7 +98,7 @@ class PgVectorRepository(VectorRepositoryPort):
         return [(_chunk(row[0]), float(row[1])) for row in rows]
 
     async def lexical_search(self, tenant_id: str, text: str, *, k: int) -> list[tuple[Chunk, float]]:
-        query = safunc.plainto_tsquery("english", text)
+        query = _lexical_tsquery(text)
         rank = safunc.ts_rank_cd(ChunkRow.tsv, query)
         async with self._session_factory() as session, session.begin():
             rows = (

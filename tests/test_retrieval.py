@@ -142,6 +142,20 @@ def test_rrf_prefers_documents_in_multiple_rankings() -> None:
     assert scores["c"] > 0
 
 
+async def test_rrf_trace_reports_each_branch_size() -> None:
+    retriever = Retriever(RetrievalSettings(enable_rerank=False), _ManyVectors(3), _Embedder(), None)
+
+    outcome = await retriever.retrieve(
+        Query(id=uuid.uuid4(), tenant_id="tenant-a", text="How does RRF work?")
+    )
+
+    detail = next(step.detail for step in outcome.trace if step.name == "rrf")
+    # An empty lexical branch degrades RRF to the dense ranking; the trace must
+    # make that visible instead of looking like a normal fusion.
+    assert "dense 3" in detail
+    assert "lexical 0" in detail
+
+
 def test_split_query_keeps_simple_queries_whole() -> None:
     assert split_query("What is our refund policy?") == ["What is our refund policy?"]
 

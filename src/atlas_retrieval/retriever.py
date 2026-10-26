@@ -97,7 +97,16 @@ class Retriever:
                 for chunk, _ in [*dense, *lexical]:
                     by_id.setdefault(str(chunk.id), (chunk.id, chunk.document_id, chunk.text))
             fused = rrf_fusion([*semantic_ranks, *lexical_ranks], k=self._settings.rrf_k)
-            trace.append(TraceStep("rrf", f"{len(fused)} unique chunks fused"))
+            # Report both branch sizes: an empty branch silently degrades RRF to a
+            # single list, which is invisible in the fused count alone.
+            trace.append(
+                TraceStep(
+                    "rrf",
+                    f"{len(fused)} unique chunks fused "
+                    f"(dense {sum(len(rank) for rank in semantic_ranks)}, "
+                    f"lexical {sum(len(rank) for rank in lexical_ranks)} hits)",
+                )
+            )
 
             ordered = sorted(fused.items(), key=lambda kv: kv[1], reverse=True)
             contexts: list[RetrievedContext] = []

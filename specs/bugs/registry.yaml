@@ -51,3 +51,13 @@ bugs:
     fix_path: quick-fix
     commit: null
     doc: specs/bugs/BUG-005.md
+
+  - id: BUG-006
+    title: "lexical_search ANDs every lexeme — hybrid retrieval silently dense-only"
+    severity: high
+    status: fixed
+    file: src/atlas_vector/repositories.py
+    discovered: "2026-10-26"
+    fix_path: investigate-bug
+    commit: null
+    doc: specs/bugs/BUG-006.md

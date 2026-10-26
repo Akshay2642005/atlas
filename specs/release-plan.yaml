@@ -25,8 +25,8 @@ epics:
     status: planned
 
 bugs:
-  total: 5
-  fixed: 5
+  total: 6
+  fixed: 6
   deferred: 0
   wontfix: 0
   open: 0
