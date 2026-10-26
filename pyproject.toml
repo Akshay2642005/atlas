@@ -41,7 +41,7 @@ dev = [
 ]
 
 [project.scripts]
-api = "atlas_api.main:run"
+atlas-api = "atlas_api.main:run"
 
 # Common development commands:
 # uv run atlas-api          # Run the API server
