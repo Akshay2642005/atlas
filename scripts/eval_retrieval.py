@@ -1126,6 +1126,64 @@ def _markdown(
     return "\n".join(lines)
 
 
+async def cmd_warm(args: argparse.Namespace) -> int:
+    """Cache every query vector a run needs, retrying a cold embedder.
+
+    The hosted 8B embedder returns 504s for minutes at a time. Warming is
+    separate from scoring so a slow endpoint cannot produce a half-written
+    report: retry this in a loop, then `run` against a warm cache.
+    """
+    settings = _settings(args.url)
+    cases = _load_cases(args.queries)
+    if not cases:
+        raise SystemExit(f"{args.queries} contains no queries")
+
+    engine, _ = create_engine_and_session(settings.postgres)
+    try:
+        _, corpus = await _corpus(engine, args.tenant)
+    finally:
+        await engine.dispose()
+    if corpus["chunks"] == 0:
+        raise SystemExit(f"tenant {args.tenant!r} has no chunks; run `ingest` first")
+    dims = corpus["dims"]
+
+    texts = sorted(
+        {case.query for case in cases} | {sub for case in cases for sub in split_query(case.query)}
+    )
+    model = settings.nvidia.embedding_model
+    cache = _EmbeddingCache(args.cache)
+    missing = [
+        text for text in texts if cache.get(_embed_key(model, dims, EmbedKind.QUERY, text)) is None
+    ]
+    if not missing:
+        _log(f"cache already warm: {len(texts)} query vectors at {dims} dims")
+        return 0
+    _log(f"{len(missing)}/{len(texts)} query vectors missing at {dims} dims")
+
+    embedder = NvidiaEmbedder(settings.nvidia.model_copy(update={"embedding_dimensions": dims}))
+    for attempt in range(1, args.attempts + 1):
+        try:
+            vectors = await embedder.embed(missing, EmbedKind.QUERY)
+        except InfraError as exc:
+            if attempt == args.attempts:
+                _log(f"warning  embedder still failing after {attempt} attempt(s): {exc}")
+                return 1
+            wait = min(args.wait * attempt, args.max_wait)
+            _log(f"cold start (attempt {attempt}); waiting {wait:.0f}s")
+            await asyncio.sleep(wait)
+            continue
+        if len(vectors) != len(missing):
+            _log(f"warning  expected {len(missing)} vectors, received {len(vectors)}")
+            return 1
+        cache.put_many(
+            (_embed_key(model, dims, EmbedKind.QUERY, text), vector)
+            for text, vector in zip(missing, vectors, strict=True)
+        )
+        _log(f"cached {len(missing)} query vectors at {dims} dims")
+        return 0
+    return 1
+
+
 async def cmd_run(args: argparse.Namespace) -> int:
     settings = _settings(args.url)
     arms = parse_arms(args.arms)
@@ -1359,6 +1417,15 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     run.add_argument("--keep-tables", action="store_true")
     run.set_defaults(func=cmd_run)
+
+    warm = sub.add_parser("warm", parents=[common], help="cache query embeddings ahead of a run")
+    warm.add_argument("--tenant", default=DEFAULT_TENANT)
+    warm.add_argument("--queries", type=Path, required=True)
+    warm.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
+    warm.add_argument("--attempts", type=int, default=10)
+    warm.add_argument("--wait", type=float, default=120.0)
+    warm.add_argument("--max-wait", type=float, default=900.0)
+    warm.set_defaults(func=cmd_warm)
 
     return parser
 

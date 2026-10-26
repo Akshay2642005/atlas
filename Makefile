@@ -1,4 +1,4 @@
-.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval eval-pipeline
+.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline
 
 # Keep tooling from dropping caches and bytecode into the working tree.
 export PYTHONDONTWRITEBYTECODE := 1
@@ -65,6 +65,11 @@ eval-queries:
 eval:
 	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
 		--queries specs/eval/queries-atlas-repo.jsonl --arms full4096,trunc2048
+
+# Fill the embedding cache first; the hosted 8B embedder 504s for minutes.
+eval-warm:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py warm \
+		--queries specs/eval/queries-atlas-repo.jsonl
 
 # Production pipeline: dense SQL vs RRF vs RRF + rerank at several depths.
 eval-pipeline:

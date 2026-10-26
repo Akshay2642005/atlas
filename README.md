@@ -104,6 +104,7 @@ The decision gate for embedding-width or model changes is `scripts/eval_retrieva
 make eval-db        # create atlas_eval and migrate it
 make eval-ingest    # ingest specs + README into the atlas-eval tenant
 make eval-queries   # ask the chat model for one question per sampled chunk
+make eval-warm      # cache query embeddings first (the 8B embedder is flaky)
 make eval           # full4096 vs trunc2048 -> specs/verifications/EVAL-retrieval.md
 make eval-pipeline  # dense vs RRF vs RRF+rerank -> EVAL-retrieval-hybrid.md
 ```
@@ -111,6 +112,8 @@ make eval-pipeline  # dense vs RRF vs RRF+rerank -> EVAL-retrieval-hybrid.md
 Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. `hybrid` runs the production retriever (dense + lexical with reciprocal-rank fusion) and `hybrid-rerank` adds the hosted reranker, so those two measure the pipeline users actually hit, including its latency. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The dense arms are deliberately fusion-free: mixing them with reranking would hide the embedding change being tested.
 
 Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.
+
+`make eval-warm` fills `.eval-cache/embeddings.jsonl` with every query and sub-query vector a run needs, retrying a cold 8B endpoint with backoff. Run it in a loop if the endpoint is returning 504s; `run` then scores against a warm cache instead of failing mid-report.
 
 ## Chat providers
 
