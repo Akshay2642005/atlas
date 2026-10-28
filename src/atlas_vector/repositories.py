@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import ColumnElement, delete, select, update
+from sqlalchemy import ColumnElement, delete, exists, select, update
 from sqlalchemy import func as safunc
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -120,15 +120,17 @@ class PgDocumentRepository(DocumentRepositoryPort):
 
     async def add(self, document: Document, content: bytes) -> None:
         async with self._session_factory() as session, session.begin():
-            # Ingesting the same bytes again replaces the previous attempt
-            # instead of colliding on (tenant_id, checksum). Without this a
-            # document that failed after its row was committed — a guard
-            # rejection, a 504 from the embedder — could never be retried
-            # (BUG-008). Chunks and content cascade from the document row.
+            # An attempt that produced no chunks is replaced, so a document
+            # that failed after its row was committed — a guard rejection, a
+            # 504 from the embedder — is retryable (BUG-008). A document that
+            # did produce chunks still collides on (tenant_id, checksum), which
+            # the API surfaces as 409 "already ingested". Chunks and content
+            # cascade from the document row.
             await session.execute(
                 delete(DocumentRow).where(
                     DocumentRow.tenant_id == document.tenant_id,
                     DocumentRow.checksum == document.checksum,
+                    ~exists(select(ChunkRow.id).where(ChunkRow.document_id == DocumentRow.id)),
                 )
             )
             session.add(

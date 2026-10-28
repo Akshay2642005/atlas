@@ -78,3 +78,14 @@ def test_add_scopes_the_replacement_to_the_tenant_and_checksum() -> None:
     assert "documents.tenant_id" in sql
     assert "documents.checksum" in sql
     assert set(compiled.params.values()) == {"atlas-test", "abc123"}
+
+
+def test_add_only_replaces_an_attempt_that_produced_no_chunks() -> None:
+    """A document that already has chunks must still conflict (HTTP 409)."""
+    session = _RecordingSession()
+    _add(session, _document("abc123"))
+
+    sql = str(session.events[0].compile(dialect=postgresql.dialect()))
+
+    assert "EXISTS" in sql.upper()
+    assert "chunks.document_id = documents.id" in sql

@@ -62,8 +62,9 @@ class DocumentRepositoryPort(Protocol):
     async def add(self, document: Document, content: bytes) -> None:
         """Persist a document and its raw content.
 
-        Re-adding the same `(tenant_id, checksum)` replaces the earlier attempt,
-        including its chunks, so a failed ingest is retryable.
+        Re-adding the same `(tenant_id, checksum)` replaces an earlier attempt
+        that produced no chunks, so a failed ingest is retryable. A document
+        that already produced chunks still conflicts.
         """
         ...
 
