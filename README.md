@@ -87,7 +87,7 @@ All settings are typed in `atlas_core/config.py`; nested env groups use `__`:
 | `POSTGRES__` | `URL` (asyncpg), pool + statement timeout |
 | `REDIS__` | queue + rate limiter |
 | `CHUNKING__` | `CHUNK_SIZE_TOKENS`, `OVERLAP_TOKENS`, `ENABLE_SEMANTIC_CHUNKS` |
-| `RETRIEVAL__` | `SEMANTIC_TOP_K`, `LEXICAL_TOP_K`, `RERANK_TOP_K` (candidates sent to the reranker, default 50), `FINAL_TOP_K`, `ENABLE_RERANK`, `RRF_K` |
+| `RETRIEVAL__` | `SEMANTIC_TOP_K`, `LEXICAL_TOP_K`, `RERANK_TOP_K` (candidates sent to the reranker, default 24), `FINAL_TOP_K`, `ENABLE_RERANK`, `RRF_K` |
 | `SECURITY__` | `API_KEYS`, `PII_POLICY` (`off|mask`), `RATE_LIMIT_RPM`, `DISABLE_INJECTION_GUARD` |
 | `OBSERVABILITY__` | `LOG_LEVEL`, `LOG_JSON`, `OTLP_ENDPOINT` (empty = tracing off) |
 | `CHAOS__` | `ENABLED`, `FAILURE_RATE`, `SLEEP_SECONDS` — never enable in prod |
@@ -109,7 +109,7 @@ make eval           # full4096 vs trunc2048 -> specs/verifications/EVAL-retrieva
 make eval-pipeline  # dense vs RRF vs RRF+rerank -> EVAL-retrieval-hybrid.md
 ```
 
-Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. `hybrid` runs the production retriever (dense + lexical with reciprocal-rank fusion) and `hybrid-rerank` adds the hosted reranker, so those two measure the pipeline users actually hit, including its latency. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The dense arms are deliberately fusion-free: mixing them with reranking would hide the embedding change being tested.
+Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. `hybrid` runs the production retriever (dense + lexical with reciprocal-rank fusion), `hybrid-rerank` adds the hosted reranker, and `dense-rerank` drops the lexical branch so its contribution is measurable; those three measure the pipeline users actually hit, including its latency. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The dense arms are deliberately fusion-free: mixing them with reranking would hide the embedding change being tested.
 
 Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.
 
