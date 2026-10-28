@@ -18,7 +18,10 @@ _PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"developer mode",
         r"print (?:your|the) (?:system )?prompt",
         r"what (?:are )?your (?:instructions|system prompt)",
-        r"system\s*:\s*",
+        # A chat role prefix is a *line* that starts with `system:`. Matching the
+        # bare substring rejected every document containing "ecosystem:" or the
+        # `Operating System ::` classifier (BUG-007).
+        r"(?m)^[ \t]*system[ \t]*:[ \t]*",
         r"<\|im_start\|>"
     )
 )

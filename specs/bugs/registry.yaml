@@ -61,3 +61,13 @@ bugs:
     fix_path: investigate-bug
     commit: "f470bd8"
     doc: specs/bugs/BUG-006.md
+
+  - id: BUG-007
+    title: "injection guard rejects documents containing 'ecosystem:' or 'Operating System ::'"
+    severity: medium
+    status: fixed
+    file: src/atlas_core/security/injection.py
+    discovered: "2026-10-28"
+    fix_path: investigate-bug
+    commit: null
+    doc: specs/bugs/BUG-007.md
