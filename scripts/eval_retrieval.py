@@ -720,11 +720,17 @@ async def _prepare_arm(
     if arm.is_pipeline:
         retrieval = settings.retrieval.model_copy(
             update={
-                "enable_rerank": arm.kind == "hybrid-rerank",
+                "enable_rerank": arm.reranks,
                 # Score the same depth the dense arms use; the configured value
                 # (6 by default) is tuned for answer context, not evaluation.
                 "final_top_k": max(k, settings.retrieval.final_top_k),
                 "rerank_top_k": arm.rerank_top_k or settings.retrieval.rerank_top_k,
+                # `dense-rerank` isolates the lexical branch's contribution:
+                # a zero limit makes `lexical_search` return nothing, so RRF
+                # fuses a single list without changing production code.
+                "lexical_top_k": 0
+                if arm.kind == "dense-rerank"
+                else settings.retrieval.lexical_top_k,
             }
         )
         embedder = _CachedEmbedder(
@@ -735,9 +741,7 @@ async def _prepare_arm(
             dims=corpus_dims,
             cache=cache,
         )
-        reranker: RerankerPort | None = (
-            NvidiaReranker(settings.nvidia) if arm.kind == "hybrid-rerank" else None
-        )
+        reranker: RerankerPort | None = NvidiaReranker(settings.nvidia) if arm.reranks else None
         return _PreparedArm(
             spec=arm,
             sql=None,
@@ -932,7 +936,7 @@ async def _evaluate_pipeline_arm(
         latencies=latencies,
         # `hybrid` intentionally does not rerank; only report coverage for arms
         # that claim to.
-        reranked=reranked if prepared.spec.kind == "hybrid-rerank" else None,
+        reranked=reranked if prepared.spec.reranks else None,
     )
 
 
@@ -1118,7 +1122,7 @@ def _markdown(
         "- ANN arms force `enable_seqscan = off` so the HNSW index is actually used.",
         "  Their latency is not directly comparable to exact arms on tiny corpora.",
         "- Dense-arm latency measures the SQL query only. `hybrid` arms also include",
-        "  query embedding (cached here, so near zero) and, for `hybrid-rerank`, the",
+        "  query embedding (cached here, so near zero) and, for reranked arms, the",
         "  hosted rerank round trip. That is the number users feel, but it is not a",
         "  like-for-like comparison with dense SQL.",
         "",
@@ -1271,11 +1275,11 @@ async def cmd_run(args: argparse.Namespace) -> int:
             )
             outcomes.append(outcome)
             summary = outcome.summary
-            if arm.kind == "hybrid-rerank":
+            if arm.reranks:
                 reranked = outcome.reranked or 0
                 if reranked == 0:
                     raise SystemExit(
-                        "hybrid-rerank never applied reranking (provider unavailable?); "
+                        f"{arm.name} never applied reranking (provider unavailable?); "
                         "refusing to report a no-rerank result as reranked"
                     )
                 if reranked < summary.count:

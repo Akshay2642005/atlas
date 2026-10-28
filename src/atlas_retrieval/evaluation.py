@@ -18,6 +18,7 @@ _BULLET_RE = re.compile(r"^(?:[-*•]|\d+[.)])\s+")
 _QUOTES = "\"'“”‘’`"
 _ARM_RE = re.compile(r"^reembed:(?P<model>[A-Za-z0-9._/-]+)@(?P<dims>[0-9]+)(?P<ann>:hnsw)?$")
 _HYBRID_RE = re.compile(r"^hybrid(?P<rerank>-rerank)?(?:@(?P<depth>[0-9]+))?$")
+_DENSE_RERANK_RE = re.compile(r"^dense-rerank(?:@(?P<depth>[0-9]+))?$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,23 +74,29 @@ class DeltaCI:
 class ArmSpec:
     """One retrieval configuration to evaluate.
 
-    `existing` and `reembed` arms are dense-only SQL. `hybrid` and
-    `hybrid-rerank` run the production retriever (dense + lexical RRF, with or
-    without reranking), so they measure the pipeline users actually hit.
+    `existing` and `reembed` arms are dense-only SQL. `hybrid`,
+    `hybrid-rerank`, and `dense-rerank` run the production retriever (dense +
+    lexical RRF, optionally reranked; `dense-rerank` disables the lexical
+    branch), so they measure the pipeline users actually hit.
     """
 
     name: str
-    kind: Literal["existing", "reembed", "hybrid", "hybrid-rerank"]
+    kind: Literal["existing", "reembed", "hybrid", "hybrid-rerank", "dense-rerank"]
     dims: int
     ann: bool = False
     model: str | None = None
-    # `hybrid-rerank@<n>` overrides the candidate depth sent to the reranker.
+    # `<arm>@<n>` overrides the candidate depth sent to the reranker.
     rerank_top_k: int | None = None
 
     @property
     def is_pipeline(self) -> bool:
         """True when the arm runs `Retriever` instead of a raw SQL query."""
-        return self.kind in {"hybrid", "hybrid-rerank"}
+        return self.kind in {"hybrid", "hybrid-rerank", "dense-rerank"}
+
+    @property
+    def reranks(self) -> bool:
+        """True when the arm is supposed to call the hosted reranker."""
+        return self.kind in {"hybrid-rerank", "dense-rerank"}
 
 
 def truncate_embedding(values: Sequence[float], dims: int) -> list[float]:
@@ -226,8 +233,22 @@ def bootstrap_delta(
     return DeltaCI(mean=observed, low=percentile(means, 2.5), high=percentile(means, 97.5))
 
 
+def _rerank_depth(raw: str | None, *, arm: str) -> int | None:
+    if raw is None:
+        return None
+    depth = int(raw)
+    if depth < 1:
+        raise ValueError(f"{arm} depth must be at least 1")
+    return depth
+
+
 def parse_arm(spec: str) -> ArmSpec:
-    """Parse a dense arm or a production `hybrid[-rerank[@depth]]` arm."""
+    """Parse a dense arm or a production pipeline arm.
+
+    Pipeline arms are `hybrid`, `hybrid-rerank[@depth]`, and
+    `dense-rerank[@depth]` (the last drops the lexical branch, so it measures
+    whether fusion earns its keep once reranking is in place).
+    """
     compact = spec.strip()
     if compact == "full4096":
         return ArmSpec(name=compact, kind="existing", dims=4096)
@@ -237,22 +258,28 @@ def parse_arm(spec: str) -> ArmSpec:
     if hybrid is not None:
         rerank = hybrid.group("rerank") is not None
         raw_depth = hybrid.group("depth")
-        depth = int(raw_depth) if raw_depth is not None else None
-        if depth is not None and depth < 1:
-            raise ValueError("rerank depth must be at least 1")
-        if depth is not None and not rerank:
+        if raw_depth is not None and not rerank:
             raise ValueError("only hybrid-rerank accepts a candidate depth, e.g. hybrid-rerank@24")
         return ArmSpec(
             name=compact,
             kind="hybrid-rerank" if rerank else "hybrid",
             dims=0,
-            rerank_top_k=depth,
+            rerank_top_k=_rerank_depth(raw_depth, arm="hybrid-rerank"),
+        )
+    dense_rerank = _DENSE_RERANK_RE.match(compact)
+    if dense_rerank is not None:
+        return ArmSpec(
+            name=compact,
+            kind="dense-rerank",
+            dims=0,
+            rerank_top_k=_rerank_depth(dense_rerank.group("depth"), arm="dense-rerank"),
         )
     match = _ARM_RE.match(compact)
     if match is None:
         raise ValueError(
             f"unknown arm {spec!r}; expected full4096, trunc2048, trunc2048-hnsw, "
-            "hybrid, hybrid-rerank[@<depth>], or reembed:<model>@<dims>[:hnsw]"
+            "hybrid, hybrid-rerank[@<depth>], dense-rerank[@<depth>], "
+            "or reembed:<model>@<dims>[:hnsw]"
         )
     dims = int(match.group("dims"))
     if not 1 <= dims <= 16000:

@@ -76,9 +76,10 @@ eval-warm:
 	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py warm \
 		--queries specs/eval/queries-atlas-repo.jsonl
 
-# Production pipeline: dense SQL vs RRF vs RRF + rerank at several depths.
+# Production pipeline: dense SQL vs RRF vs rerank depth, plus rerank without
+# the lexical branch. Reproduces the decision table in ADR 0003.
 eval-pipeline:
 	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
 		--queries specs/eval/queries-atlas-repo.jsonl \
-		--arms full4096,hybrid,hybrid-rerank@50,hybrid-rerank@24,hybrid-rerank@12 \
+		--arms full4096,hybrid,hybrid-rerank@50,hybrid-rerank@24,hybrid-rerank@12,dense-rerank@24 \
 		--label hybrid

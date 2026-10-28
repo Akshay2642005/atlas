@@ -139,6 +139,16 @@ def test_parse_arm_rejects_a_depth_on_plain_hybrid() -> None:
         parse_arm("hybrid@24")
 
 
+def test_parse_arm_supports_dense_rerank() -> None:
+    arm = parse_arm("dense-rerank@24")
+
+    assert arm.kind == "dense-rerank"
+    assert arm.rerank_top_k == 24
+    assert arm.is_pipeline
+    assert arm.reranks
+    assert not parse_arm("hybrid").reranks
+
+
 def test_parse_arms_rejects_ann_above_the_cap() -> None:
     with pytest.raises(ValueError, match="4,000"):
         parse_arm("reembed:nvidia/nemotron-3.5-embed-8b@4096:hnsw")
