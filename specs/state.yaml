@@ -8,22 +8,24 @@ session:
   active_epic_id: null
   active_story_id: null
   handoff:
-    last_step_completed: "e01 (live-run hardening) complete and 0.1.0 recorded as released-but-unpublished. Production retrieval is now measurable: harness arms `hybrid` and `hybrid-rerank@<depth>` run the real Retriever, `retrieval.rerank_top_k` (default 50) caps candidates, and rerank latency is priced in specs/verifications/BENCH-rerank-depth.md. `make eval-warm` retries the flaky 8B embedder before scoring. `make preflight` now includes basedpyright on src."
+    last_step_completed: "Production pipeline measured and rerank depth settled: `retrieval.rerank_top_k = 24`, bit-identical to 50 on all 40 queries at half the p50 (1013ms vs 1911ms). Reranking is the quality lever (nDCG 71.2 -> 85.7, hit@1 45.0% -> 67.5%); fusion alone trades precision for recall. Fixed BUG-006 en route: `lexical_search` ANDed every lexeme, so hybrid retrieval had been dense-only in production and the first hybrid arm silently scored like `full4096`. ADR 0003 and specs/verifications/EVAL-retrieval-hybrid.md carry the numbers."
     open_decisions:
-      - "Rerank depth: latency is measured (50 -> 1.62s, 24 -> 0.93s, 12 -> 0.53s) but the nDCG comparison has not run; `rerank_top_k` stays at 50 until `make eval-pipeline` says a lower depth is free."
-      - "2048 truncation and 1B model swap are not distinguishable from noise on the 112-chunk repo corpus; gate them on an evaluation over real tenant data before changing defaults."
+      - "The lexical branch changes no ranking once reranking is in place (`dense-rerank@24` == `hybrid-rerank@24` on all 40 queries), but the corpus has no exact-identifier questions; settle it on tenant-scale data before removing it."
+      - "Rerank latency (~1.0s at depth 24) dominates the request against ~26-48ms for retrieval; the next lever is the reranker (self-hosted NIM, batching, smaller model), not fewer candidates."
+      - "2048 truncation and 1B model swap are still not distinguishable from noise on the 112-chunk repo corpus; gate them on a tenant-scale evaluation before changing defaults."
       - "CI has never executed: the repository has no git remote, so semantic-release has not tagged 0.1.0 either."
     required_reading:
       - CONVENTIONS.md
       - specs/adr/0003-embedding-width-and-ann-indexing.md
-      - specs/verifications/BENCH-rerank-depth.md
+      - specs/verifications/EVAL-retrieval-hybrid.md
+      - specs/bugs/BUG-006.md
     next_skill: null
-    timestamp: "2026-10-26"
+    timestamp: "2026-10-28"
 
 vcs:
   kind: git
   branch: master
-  commit: 4301c74
+  commit: f028b3e
 
 metrics:
   story_start: null
