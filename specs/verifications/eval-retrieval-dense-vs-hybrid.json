@@ -1,0 +1,487 @@
+{
+  "generated_at": "2026-10-28T00:35:25+00:00",
+  "environment": {
+    "server": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "pgvector": "0.8.7"
+  },
+  "config": {
+    "tenant": "atlas-eval",
+    "k": 10,
+    "ef_search": 40,
+    "queries": "specs/eval/queries-atlas-repo.jsonl",
+    "query_count": 40,
+    "skipped": 0,
+    "query_embedders": [
+      "nvidia/nemotron-3.5-embed-8b"
+    ],
+    "arms": [
+      "dense-rerank@24",
+      "hybrid-rerank@24"
+    ]
+  },
+  "corpus": {
+    "chunks": 112,
+    "documents": 20,
+    "dims": 4096
+  },
+  "results": [
+    {
+      "arm": "dense-rerank@24",
+      "kind": "dense-rerank",
+      "dims": 0,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 1.0,
+      "mrr": 0.8083333333333333,
+      "ndcg": 0.8566249582956618,
+      "hit_at_1": 0.675,
+      "p50_ms": 1039.423541999895,
+      "p95_ms": 1551.7018976000024,
+      "reranked": 40,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "ndcg": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "q-243ee676a10c",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-f0a25320f449",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-4b65bbe413d7",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-10f1d9f6a24f",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-a4159cb738e9",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "q-454525e9f2dc",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "q-c077a964808a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-324d1461b3af",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-98bde36cbc87",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-4deac17178d6",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "q-8f100dfdd3f5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-3c7efd8ffc4d",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-6000443a8eac",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-644d6c8496f5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-813d4c0f5a05",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "q-9759ca480be8",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-0c3e86e754bd",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-5f9ec5696ee5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-6897dfcd545d",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "q-411de624f443",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-439fa3c2621e",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-b9ab4e695227",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-cb58e259cfb7",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-edd9bd7057cc",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-4181c0cf348a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ff1b2c018433",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-184aff88c7f5",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-fc2b6844ad27",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-e5808a365f7a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-35160161cbee",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-278ee738f72a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-cf4abe8ecdad",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-e138a80ec739",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-c1100b3eeb7c",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-473eb56fdbcf",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ce8ee8e05202",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ed1956ed3700",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-9971d0517a06",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-51364fad4c85",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-4e2bc6e5ce22",
+          "rank": 1,
+          "ndcg": 1.0
+        }
+      ]
+    },
+    {
+      "arm": "hybrid-rerank@24",
+      "kind": "hybrid-rerank",
+      "dims": 0,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 1.0,
+      "mrr": 0.8083333333333333,
+      "ndcg": 0.8566249582956618,
+      "hit_at_1": 0.675,
+      "p50_ms": 1056.1693539998487,
+      "p95_ms": 1485.89821455007,
+      "reranked": 40,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "ndcg": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "q-243ee676a10c",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-f0a25320f449",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-4b65bbe413d7",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-10f1d9f6a24f",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-a4159cb738e9",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "q-454525e9f2dc",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "q-c077a964808a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-324d1461b3af",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-98bde36cbc87",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-4deac17178d6",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "q-8f100dfdd3f5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-3c7efd8ffc4d",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-6000443a8eac",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-644d6c8496f5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-813d4c0f5a05",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "q-9759ca480be8",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-0c3e86e754bd",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-5f9ec5696ee5",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-6897dfcd545d",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "q-411de624f443",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-439fa3c2621e",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-b9ab4e695227",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-cb58e259cfb7",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-edd9bd7057cc",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-4181c0cf348a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ff1b2c018433",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-184aff88c7f5",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-fc2b6844ad27",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-e5808a365f7a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-35160161cbee",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-278ee738f72a",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-cf4abe8ecdad",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-e138a80ec739",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "q-c1100b3eeb7c",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-473eb56fdbcf",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ce8ee8e05202",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-ed1956ed3700",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-9971d0517a06",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-51364fad4c85",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "q-4e2bc6e5ce22",
+          "rank": 1,
+          "ndcg": 1.0
+        }
+      ]
+    }
+  ]
+}

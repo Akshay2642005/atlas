@@ -53,8 +53,17 @@ for end-to-end latency.
 
 - One query, one 112-chunk corpus. The linear cost model should hold, but the
   per-document constant will vary with text length.
-- This measures **latency only**. Whether depth 24 or 12 preserves nDCG is
-  unmeasured: the 8B query-embedding endpoint was returning 504s during this
-  window, so the quality comparison could not run. The cap defaults to 50
-  (conservative) until `make eval-pipeline` with
-  `--arms hybrid,hybrid-rerank@24,hybrid-rerank@12` says otherwise.
+- This measures **latency only**.
+
+## Outcome
+
+The quality half ran later (`specs/verifications/EVAL-retrieval-hybrid.md`):
+depth 24 ranked all 40 queries identically to depth 50, so
+`RETRIEVAL__RERANK_TOP_K` defaults to **24** — half the p50 for the same
+output. Depth 12 was rejected: it drops one query out of the top 10
+(−2.5 pp recall, −1.1 pp nDCG), which is a real regression even though its
+confidence interval touches zero.
+
+That is why the benchmark depths are still 100/50/24/12/6: the curve is what
+justifies the default, and re-running it on a different corpus is how the
+default should be revisited.

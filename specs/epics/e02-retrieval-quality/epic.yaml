@@ -6,16 +6,22 @@ status: planned
 # Not sliced yet. The candidate outcomes below are what the evidence so far
 # points at; `plan-work` turns them into stories and tasks.
 notes: |
-  Ranking, not embedding width, is the open quality lever: the dense baseline
-  recalls the right chunk 92.5% of the time but ranks it first only 45% of the
-  time. `hybrid` and `hybrid-rerank` arms now measure the production pipeline.
+  Ranking, not embedding width, was the open quality lever, and it is now
+  measured. Reranking lifts nDCG 71.2 -> 85.7 and hit@1 45.0% -> 67.5%; fusion
+  alone trades precision for recall (recall 92.5 -> 97.5%, nDCG 71.2 -> 66.7%).
+  `RETRIEVAL__RERANK_TOP_K` is 24, bit-identical to 50 on all 40 queries at
+  half the p50. See ADR 0003 and specs/verifications/EVAL-retrieval-hybrid.md.
 
-  1. Pick `RETRIEVAL__RERANK_TOP_K` from measured nDCG and latency.
-     Latency is priced (specs/verifications/BENCH-rerank-depth.md: 50 -> 1.62s,
-     24 -> 0.93s, 12 -> 0.53s); quality is not yet measured.
-  2. Re-run the 4096 vs 2048 vs 1B width comparison on a tenant-scale corpus.
-     The 112-chunk repo corpus cannot separate the arms from query noise.
-  3. Make the type gate real: `basedpyright src` now runs in preflight and CI,
-     but CI has never executed because the repository has no remote.
+  Remaining candidate outcomes:
+
+  1. Tenant-scale corpus run: settle 4096 vs 2048 vs 1B, and decide whether the
+     lexical branch earns its keep once reranking is in place. On 112 chunks it
+     did not (`dense-rerank@24` ranked identically to `hybrid-rerank@24`), but
+     that corpus has no exact-identifier questions.
+  2. Rerank latency: ~1.0 s at depth 24 dominates the request, against ~26-48 ms
+     for retrieval. Self-hosted NIM, batching, or a smaller reranker is the next
+     lever; fewer candidates is not (depth 12 already costs a query).
+  3. CI has never executed: give the repository a remote so the workflow, which
+     now includes basedpyright, actually runs.
 
 stories: []
