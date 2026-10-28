@@ -8,24 +8,26 @@ session:
   active_epic_id: null
   active_story_id: null
   handoff:
-    last_step_completed: "Production pipeline measured and rerank depth settled: `retrieval.rerank_top_k = 24`, bit-identical to 50 on all 40 queries at half the p50 (1013ms vs 1911ms). Reranking is the quality lever (nDCG 71.2 -> 85.7, hit@1 45.0% -> 67.5%); fusion alone trades precision for recall. Fixed BUG-006 en route: `lexical_search` ANDed every lexeme, so hybrid retrieval had been dense-only in production and the first hybrid arm silently scored like `full4096`. ADR 0003 and specs/verifications/EVAL-retrieval-hybrid.md carry the numbers."
+    last_step_completed: "Measured retrieval on a 9k-chunk public-docs corpus (929 documents, 8,990 chunks) with two query sets: 120 generated questions and 60 exact-identifier queries. Settled both open questions in ADR 0004 — keep 4096 + the 8B embedder (2048 truncation is a tie, the 1B is -3.5 pp nDCG), and keep the lexical branch (costs 1.7 pp recall on questions, gains 5.0 pp on exact identifiers, once reranked). Fixed two ingest bugs found en route: BUG-007 (injection guard rejected 21 documents over `system:` substrings) and BUG-008 (a failed ingest is permanent — the document row outlives the failure)."
     open_decisions:
-      - "The lexical branch changes no ranking once reranking is in place (`dense-rerank@24` == `hybrid-rerank@24` on all 40 queries), but the corpus has no exact-identifier questions; settle it on tenant-scale data before removing it."
-      - "Rerank latency (~1.0s at depth 24) dominates the request against ~26-48ms for retrieval; the next lever is the reranker (self-hosted NIM, batching, smaller model), not fewer candidates."
-      - "2048 truncation and 1B model swap are still not distinguishable from noise on the 112-chunk repo corpus; gate them on a tenant-scale evaluation before changing defaults."
+      - "Rerank outage fallback: the retriever serves the fused ordering for five minutes when the reranker is unreachable, which is 19 pp nDCG worse than dense alone at 9k chunks. Serving dense order would be strictly better here, but it changes what ENABLE_RERANK=false means."
+      - "Fusion quality: RRF's co-occurrence boost promotes a dense rank-40 chunk above a dense rank-10 one; 28.8% of the rerank window is lexical-only. A promotion cap or document-level dedupe before fusion is unmeasured."
+      - "BUG-008 is open: `PgDocumentRepository.add` should replace an existing (tenant_id, checksum) row so an ingest is retryable. The corpus run worked around it by deleting 21 zero-chunk rows."
+      - "Rerank latency (~1.0 s at depth 24) still dominates the request against 19-48 ms for retrieval."
       - "CI has never executed: the repository has no git remote, so semantic-release has not tagged 0.1.0 either."
     required_reading:
       - CONVENTIONS.md
-      - specs/adr/0003-embedding-width-and-ann-indexing.md
-      - specs/verifications/EVAL-retrieval-hybrid.md
-      - specs/bugs/BUG-006.md
+      - specs/adr/0004-retrieval-fusion-and-rerank-policy.md
+      - specs/verifications/EVAL-retrieval-public-docs.md
+      - specs/verifications/EVAL-retrieval-public-docs-identifiers.md
+      - specs/bugs/BUG-008.md
     next_skill: null
     timestamp: "2026-10-28"
 
 vcs:
   kind: git
   branch: master
-  commit: f028b3e
+  commit: 13851f6
 
 metrics:
   story_start: null
