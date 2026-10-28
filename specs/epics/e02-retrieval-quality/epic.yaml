@@ -6,22 +6,34 @@ status: planned
 # Not sliced yet. The candidate outcomes below are what the evidence so far
 # points at; `plan-work` turns them into stories and tasks.
 notes: |
-  Ranking, not embedding width, was the open quality lever, and it is now
-  measured. Reranking lifts nDCG 71.2 -> 85.7 and hit@1 45.0% -> 67.5%; fusion
-  alone trades precision for recall (recall 92.5 -> 97.5%, nDCG 71.2 -> 66.7%).
-  `RETRIEVAL__RERANK_TOP_K` is 24, bit-identical to 50 on all 40 queries at
-  half the p50. See ADR 0003 and specs/verifications/EVAL-retrieval-hybrid.md.
+  Retrieval is now measured on two corpora, and the two open questions are
+  answered.
+
+  Width (8,990 chunks, 120 judged queries, ADR 0003): truncating 4096 -> 2048
+  is a tie (-1.0 pp nDCG, interval -2.8 .. +0.6) and the 1B model is worse
+  (-3.5 pp, interval -6.9 .. -0.2). Keep 4096 + 8B; nothing justifies a
+  migration.
+
+  Lexical branch (ADR 0004): it is a genuine trade-off, not a bug or a tuning
+  problem. With reranking it costs 1.7 pp recall / 1.1 pp nDCG on generated
+  questions (interval straddles zero) and gains 5.0 pp recall / 3.0 pp nDCG on
+  exact-identifier queries. Retained.
 
   Remaining candidate outcomes:
 
-  1. Tenant-scale corpus run: settle 4096 vs 2048 vs 1B, and decide whether the
-     lexical branch earns its keep once reranking is in place. On 112 chunks it
-     did not (`dense-rerank@24` ranked identically to `hybrid-rerank@24`), but
-     that corpus has no exact-identifier questions.
+  1. Rerank outage fallback: the retriever serves the *fused* order for five
+     minutes when the reranker is unreachable, which is 19 pp nDCG worse than
+     dense alone on 9k chunks. Serving the dense order instead would be
+     strictly better, but it changes what ENABLE_RERANK=false means. Decide,
+     then implement.
   2. Rerank latency: ~1.0 s at depth 24 dominates the request, against ~26-48 ms
      for retrieval. Self-hosted NIM, batching, or a smaller reranker is the next
      lever; fewer candidates is not (depth 12 already costs a query).
-  3. CI has never executed: give the repository a remote so the workflow, which
+  3. Fusion quality: RRF's co-occurrence boost promotes mediocre dense
+     candidates (28.8% of the rerank window is lexical-only). A promotion cap
+     or document-level dedupe before fusion is the candidate fix; neither is
+     measured.
+  4. CI has never executed: give the repository a remote so the workflow, which
      now includes basedpyright, actually runs.
 
 stories: []

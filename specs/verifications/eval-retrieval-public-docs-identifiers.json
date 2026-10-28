@@ -1,0 +1,1347 @@
+{
+  "generated_at": "2026-10-28T01:57:09+00:00",
+  "environment": {
+    "server": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "pgvector": "0.8.7"
+  },
+  "config": {
+    "tenant": "atlas-eval-docs",
+    "k": 10,
+    "ef_search": 40,
+    "queries": "specs/eval/queries-public-docs-identifiers.jsonl",
+    "query_count": 60,
+    "skipped": 0,
+    "query_embedders": [
+      "nvidia/nemotron-3.5-embed-8b"
+    ],
+    "arms": [
+      "full4096",
+      "hybrid",
+      "hybrid-rerank@24",
+      "dense-rerank@24"
+    ]
+  },
+  "corpus": {
+    "chunks": 8990,
+    "documents": 929,
+    "dims": 4096
+  },
+  "results": [
+    {
+      "arm": "full4096",
+      "kind": "existing",
+      "dims": 4096,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 0.65,
+      "mrr": 0.38520502645502647,
+      "ndcg": 0.4482894883455773,
+      "hit_at_1": 0.26666666666666666,
+      "p50_ms": 19.795229499777633,
+      "p95_ms": 21.475133349895252,
+      "reranked": null,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "ndcg": {
+          "mean": 0.0,
+          "low": 0.0,
+          "high": 0.0
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "ident-001",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-002",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-003",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-004",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-005",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-006",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-007",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-008",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-009",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-010",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-011",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-012",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-013",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-014",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-015",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-016",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-017",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-018",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-019",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-020",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-021",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-022",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-023",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-024",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "ident-025",
+          "rank": 7,
+          "ndcg": 0.3333333333333333
+        },
+        {
+          "query_id": "ident-026",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-027",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-028",
+          "rank": 8,
+          "ndcg": 0.31546487678572877
+        },
+        {
+          "query_id": "ident-029",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-030",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-031",
+          "rank": 10,
+          "ndcg": 0.2890648263178879
+        },
+        {
+          "query_id": "ident-032",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-033",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-034",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-035",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-036",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-037",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-038",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-039",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-040",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-041",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-042",
+          "rank": 9,
+          "ndcg": 0.3010299956639812
+        },
+        {
+          "query_id": "ident-043",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-044",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-045",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-046",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-047",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-048",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-049",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-050",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-051",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-052",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "ident-053",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-054",
+          "rank": 10,
+          "ndcg": 0.2890648263178879
+        },
+        {
+          "query_id": "ident-055",
+          "rank": 5,
+          "ndcg": 0.38685280723454163
+        },
+        {
+          "query_id": "ident-056",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-057",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-058",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-059",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-060",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        }
+      ]
+    },
+    {
+      "arm": "hybrid",
+      "kind": "hybrid",
+      "dims": 0,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 0.65,
+      "mrr": 0.4036111111111111,
+      "ndcg": 0.46167021899131444,
+      "hit_at_1": 0.3,
+      "p50_ms": 80.9073125001305,
+      "p95_ms": 102.41519550027077,
+      "reranked": null,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.0,
+          "low": -0.08333333333333333,
+          "high": 0.08333333333333333
+        },
+        "ndcg": {
+          "mean": 0.013380730645737105,
+          "low": -0.054923400199238824,
+          "high": 0.08103628112760375
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "ident-001",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-002",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-003",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-004",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-005",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-006",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-007",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-008",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-009",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-010",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-011",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-012",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-013",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-014",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "ident-015",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-016",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-017",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-018",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-019",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-020",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-021",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-022",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-023",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-024",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-025",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-026",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-027",
+          "rank": 9,
+          "ndcg": 0.3010299956639812
+        },
+        {
+          "query_id": "ident-028",
+          "rank": 9,
+          "ndcg": 0.3010299956639812
+        },
+        {
+          "query_id": "ident-029",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-030",
+          "rank": 9,
+          "ndcg": 0.3010299956639812
+        },
+        {
+          "query_id": "ident-031",
+          "rank": 8,
+          "ndcg": 0.31546487678572877
+        },
+        {
+          "query_id": "ident-032",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-033",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-034",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-035",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-036",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-037",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-038",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-039",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-040",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-041",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-042",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-043",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-044",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-045",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-046",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-047",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-048",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-049",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-050",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-051",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-052",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-053",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-054",
+          "rank": 6,
+          "ndcg": 0.3562071871080222
+        },
+        {
+          "query_id": "ident-055",
+          "rank": 5,
+          "ndcg": 0.38685280723454163
+        },
+        {
+          "query_id": "ident-056",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-057",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-058",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-059",
+          "rank": 10,
+          "ndcg": 0.2890648263178879
+        },
+        {
+          "query_id": "ident-060",
+          "rank": 8,
+          "ndcg": 0.31546487678572877
+        }
+      ]
+    },
+    {
+      "arm": "hybrid-rerank@24",
+      "kind": "hybrid-rerank",
+      "dims": 0,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 0.7333333333333333,
+      "mrr": 0.5293253968253968,
+      "ndcg": 0.5808824915845036,
+      "hit_at_1": 0.38333333333333336,
+      "p50_ms": 1017.2451455000555,
+      "p95_ms": 1171.8947805997682,
+      "reranked": 60,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.08333333333333333,
+          "low": 0.0,
+          "high": 0.16666666666666666
+        },
+        "ndcg": {
+          "mean": 0.1325930032389263,
+          "low": 0.0682299088911733,
+          "high": 0.1988370492792363
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "ident-001",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-002",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-003",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-004",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-005",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-006",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-007",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-008",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-009",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-010",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-011",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-012",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-013",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-014",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-015",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-016",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-017",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-018",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-019",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-020",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-021",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-022",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-023",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-024",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-025",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-026",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-027",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-028",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-029",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-030",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-031",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-032",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-033",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-034",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-035",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-036",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-037",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-038",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-039",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-040",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-041",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-042",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-043",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-044",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-045",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-046",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-047",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-048",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-049",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-050",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-051",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-052",
+          "rank": 5,
+          "ndcg": 0.38685280723454163
+        },
+        {
+          "query_id": "ident-053",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-054",
+          "rank": 7,
+          "ndcg": 0.3333333333333333
+        },
+        {
+          "query_id": "ident-055",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-056",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-057",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-058",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-059",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-060",
+          "rank": 1,
+          "ndcg": 1.0
+        }
+      ]
+    },
+    {
+      "arm": "dense-rerank@24",
+      "kind": "dense-rerank",
+      "dims": 0,
+      "ann": false,
+      "model": null,
+      "build_seconds": 0.0,
+      "recall": 0.6833333333333333,
+      "mrr": 0.5057142857142857,
+      "ndcg": 0.5503627757666781,
+      "hit_at_1": 0.38333333333333336,
+      "p50_ms": 982.100083500427,
+      "p95_ms": 1331.512460449585,
+      "reranked": 60,
+      "delta_vs_baseline": {
+        "recall": {
+          "mean": 0.03333333333333333,
+          "low": 0.0,
+          "high": 0.08333333333333333
+        },
+        "ndcg": {
+          "mean": 0.10207328742110094,
+          "low": 0.04502054534852485,
+          "high": 0.1644595476624888
+        }
+      },
+      "ranks": [
+        {
+          "query_id": "ident-001",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-002",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-003",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-004",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-005",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-006",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-007",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-008",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-009",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-010",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-011",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-012",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-013",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-014",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-015",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-016",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-017",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-018",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-019",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-020",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-021",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-022",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-023",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-024",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-025",
+          "rank": 4,
+          "ndcg": 0.43067655807339306
+        },
+        {
+          "query_id": "ident-026",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-027",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-028",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-029",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-030",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-031",
+          "rank": 3,
+          "ndcg": 0.5
+        },
+        {
+          "query_id": "ident-032",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-033",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-034",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-035",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-036",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-037",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-038",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-039",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-040",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-041",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-042",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-043",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-044",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-045",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-046",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-047",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-048",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-049",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-050",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-051",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-052",
+          "rank": 5,
+          "ndcg": 0.38685280723454163
+        },
+        {
+          "query_id": "ident-053",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-054",
+          "rank": 7,
+          "ndcg": 0.3333333333333333
+        },
+        {
+          "query_id": "ident-055",
+          "rank": 2,
+          "ndcg": 0.6309297535714575
+        },
+        {
+          "query_id": "ident-056",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-057",
+          "rank": 1,
+          "ndcg": 1.0
+        },
+        {
+          "query_id": "ident-058",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-059",
+          "rank": null,
+          "ndcg": 0.0
+        },
+        {
+          "query_id": "ident-060",
+          "rank": 1,
+          "ndcg": 1.0
+        }
+      ]
+    }
+  ]
+}

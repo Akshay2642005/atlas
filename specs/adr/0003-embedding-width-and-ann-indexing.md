@@ -65,6 +65,14 @@ Both models were probed live: the 1B returns 2048 dims, and the 8B honours
 Keep 4096 dimensions and the 8B embedder. Store the column as
 `halfvec(4096)` and keep exact cosine search; do not add HNSW.
 
+This was re-measured on 8,990 chunks of public documentation with 120 judged
+queries (`specs/verifications/EVAL-retrieval-public-docs.md`): truncation to
+2048 dims costs nothing measurable (Δ nDCG −1.0 pp, interval −2.8 … +0.6) but
+gains nothing either, and the 1B model is measurably worse (Δ nDCG −3.5 pp,
+interval −6.9 … −0.2). A tie does not justify a migration and a re-ingest, so
+the decision stands. See [ADR 0004](0004-retrieval-fusion-and-rerank-policy.md)
+for what the same corpus said about fusion and reranking.
+
 Migration `0003` alters `chunks.embedding` from `vector(4096)` to
 `halfvec(4096)` with `USING embedding::halfvec(4096)`. It is an in-place cast:
 same values, half the bytes, no re-ingestion. Migration `0002` (1024 → 4096)
