@@ -236,3 +236,6 @@ __marimo__/
 
 # Local retrieval-evaluation embedding cache
 .eval-cache/
+
+# Fetched public documentation corpus (scripts/fetch_eval_corpus.py)
+.eval-corpora/

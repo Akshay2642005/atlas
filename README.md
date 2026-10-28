@@ -109,6 +109,18 @@ make eval           # full4096 vs trunc2048 -> specs/verifications/EVAL-retrieva
 make eval-pipeline  # dense vs RRF vs RRF+rerank -> EVAL-retrieval-hybrid.md
 ```
 
+The repository corpus is only ~112 chunks, which cannot separate 4096 from 2048 and contains no exact-identifier questions. For those questions there is a second, larger corpus of pinned public documentation (FastAPI, Django, Pydantic, pgvector):
+
+```bash
+make eval-corpus-fetch   # download the pinned docs into .eval-corpora/ (gitignored)
+make eval-ingest-docs    # ingest them into the atlas-eval-docs tenant
+make eval-queries-docs   # 120 judged questions -> specs/eval/queries-public-docs.jsonl
+make eval-warm-docs      # cache their embeddings
+make eval-docs           # width + fusion arms -> EVAL-retrieval-public-docs.md
+```
+
+`scripts/fetch_eval_corpus.py` is the reproducibility contract: it records one immutable upstream tag per source. Public docs are used deliberately so no private text is sent to the hosted embedder.
+
 Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. `hybrid` runs the production retriever (dense + lexical with reciprocal-rank fusion), `hybrid-rerank` adds the hosted reranker, and `dense-rerank` drops the lexical branch so its contribution is measurable; those three measure the pipeline users actually hit, including its latency. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The dense arms are deliberately fusion-free: mixing them with reranking would hide the embedding change being tested.
 
 Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.

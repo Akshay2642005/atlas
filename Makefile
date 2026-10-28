@@ -1,4 +1,5 @@
-.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline
+.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline \
+	eval-corpus-fetch eval-ingest-docs eval-queries-docs eval-docs
 
 # Keep tooling from dropping caches and bytecode into the working tree.
 export PYTHONDONTWRITEBYTECODE := 1
@@ -75,6 +76,36 @@ eval:
 eval-warm:
 	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py warm \
 		--queries specs/eval/queries-atlas-repo.jsonl
+
+# Public-docs corpus: ~10x the repository corpus, with real exact identifiers.
+# The fetcher pins the upstream tags, so re-running it reproduces the corpus.
+EVAL_DOCS_TENANT ?= atlas-eval-docs
+EVAL_DOCS_QUERIES ?= specs/eval/queries-public-docs.jsonl
+
+eval-corpus-fetch:
+	uv run python scripts/fetch_eval_corpus.py
+
+eval-ingest-docs: eval-db
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py ingest \
+		--tenant $(EVAL_DOCS_TENANT) \
+		--path .eval-corpora/fastapi --path .eval-corpora/django \
+		--path .eval-corpora/pydantic --path .eval-corpora/pgvector
+
+eval-queries-docs:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py generate \
+		--tenant $(EVAL_DOCS_TENANT) --sample 120 --seed 7 \
+		--out $(EVAL_DOCS_QUERIES) --overwrite
+
+eval-warm-docs:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py warm \
+		--tenant $(EVAL_DOCS_TENANT) --queries $(EVAL_DOCS_QUERIES)
+
+# Width and fusion on the public-docs corpus: the evidence ADR 0003 waits on.
+eval-docs:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
+		--tenant $(EVAL_DOCS_TENANT) --queries $(EVAL_DOCS_QUERIES) \
+		--arms full4096,trunc2048,reembed:nvidia/nemotron-3.5-embed-1b@2048,hybrid,hybrid-rerank@24,dense-rerank@24 \
+		--label public-docs
 
 # Production pipeline: dense SQL vs RRF vs rerank depth, plus rerank without
 # the lexical branch. Reproduces the decision table in ADR 0003.
