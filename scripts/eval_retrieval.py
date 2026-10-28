@@ -322,11 +322,41 @@ def _collect_files(paths: Sequence[str], extensions: set[str]) -> list[Path]:
 
 
 async def _existing_checksums(engine: AsyncEngine, tenant: str) -> set[str]:
+    """Checksums that already produced chunks.
+
+    A document row is committed before the work that can fail, so "a row
+    exists" is not "it worked". Skipping on row existence made a failed ingest
+    permanent and invisible: the rerun reported `skipped N, failed 0` while
+    documents sat there with no chunks (BUG-008).
+    """
     async with engine.connect() as conn:
         rows = await _rows(
-            conn, "SELECT checksum FROM documents WHERE tenant_id = :tenant", {"tenant": tenant}
+            conn,
+            """
+            SELECT d.checksum
+              FROM documents d
+             WHERE d.tenant_id = :tenant
+               AND EXISTS (SELECT 1 FROM chunks c WHERE c.document_id = d.id)
+            """,
+            {"tenant": tenant},
         )
     return {str(row["checksum"]) for row in rows}
+
+
+async def _empty_documents(engine: AsyncEngine, tenant: str) -> int:
+    """Documents in the tenant that produced no chunks — a run that lies."""
+    async with engine.connect() as conn:
+        rows = await _rows(
+            conn,
+            """
+            SELECT count(*) AS empty
+              FROM documents d
+             WHERE d.tenant_id = :tenant
+               AND NOT EXISTS (SELECT 1 FROM chunks c WHERE c.document_id = d.id)
+            """,
+            {"tenant": tenant},
+        )
+    return int(rows[0]["empty"])
 
 
 async def cmd_ingest(args: argparse.Namespace) -> int:
@@ -387,10 +417,20 @@ async def cmd_ingest(args: argparse.Namespace) -> int:
             ingested += 1
             chunks += result.chunks
             _log(f"ok    {path} ({result.chunks} chunks)")
+        empty = await _empty_documents(engine, args.tenant)
     finally:
         await engine.dispose()
 
     _log(f"\ningested {ingested} document(s), {chunks} chunks; skipped {skipped}; failed {failed}")
+
+    if empty:
+        # Loud on purpose: zero-chunk documents are the only trace of an ingest
+        # that did not do what it claimed, and they are invisible in the counts
+        # above (BUG-008).
+        _log(
+            f"WARNING {empty} document(s) in {args.tenant!r} produced no chunks; re-run to retry them"
+        )
+        return 1
     return 0 if ingested or skipped else 1
 
 

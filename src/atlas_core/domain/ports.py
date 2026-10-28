@@ -59,7 +59,13 @@ class ChunkerPort(Protocol):
 
 @runtime_checkable
 class DocumentRepositoryPort(Protocol):
-    async def add(self, document: Document, content: bytes) -> None: ...
+    async def add(self, document: Document, content: bytes) -> None:
+        """Persist a document and its raw content.
+
+        Re-adding the same `(tenant_id, checksum)` replaces the earlier attempt,
+        including its chunks, so a failed ingest is retryable.
+        """
+        ...
 
     async def get(self, tenant_id: str, document_id: uuid.UUID) -> Document | None: ...
 

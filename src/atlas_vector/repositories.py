@@ -120,6 +120,17 @@ class PgDocumentRepository(DocumentRepositoryPort):
 
     async def add(self, document: Document, content: bytes) -> None:
         async with self._session_factory() as session, session.begin():
+            # Ingesting the same bytes again replaces the previous attempt
+            # instead of colliding on (tenant_id, checksum). Without this a
+            # document that failed after its row was committed — a guard
+            # rejection, a 504 from the embedder — could never be retried
+            # (BUG-008). Chunks and content cascade from the document row.
+            await session.execute(
+                delete(DocumentRow).where(
+                    DocumentRow.tenant_id == document.tenant_id,
+                    DocumentRow.checksum == document.checksum,
+                )
+            )
             session.add(
                 DocumentRow(
                     id=document.id,
