@@ -18,10 +18,13 @@ _PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"developer mode",
         r"print (?:your|the) (?:system )?prompt",
         r"what (?:are )?your (?:instructions|system prompt)",
-        # A chat role prefix is a *line* that starts with `system:`. Matching the
-        # bare substring rejected every document containing "ecosystem:" or the
-        # `Operating System ::` classifier (BUG-007).
-        r"(?m)^[ \t]*system[ \t]*:[ \t]*",
+        # A chat role prefix is a *block* that starts with `system:`. Line-anchoring
+        # alone is not enough: wrapped prose puts the word at a line start too
+        # ("Django uses an intuitive\nsystem: A model class …"), which rejected
+        # real documentation (BUG-007). Roles are separated by blank lines.
+        # `\A`, not `^`: with MULTILINE, `^` matches after every newline and
+        # would collapse this back to line-anchoring.
+        r"(?m)(?:\A|\n[ \t]*\n)[ \t]*system[ \t]*:[ \t]*(?=\S)",
         r"<\|im_start\|>"
     )
 )

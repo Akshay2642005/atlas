@@ -71,3 +71,13 @@ bugs:
     fix_path: investigate-bug
     commit: null
     doc: specs/bugs/BUG-007.md
+
+  - id: BUG-008
+    title: "failed ingest is permanent — document row outlives the failure and blocks retries"
+    severity: high
+    status: open
+    file: src/atlas_ingest/pipeline.py
+    discovered: "2026-10-28"
+    fix_path: investigate-bug
+    commit: null
+    doc: specs/bugs/BUG-008.md
