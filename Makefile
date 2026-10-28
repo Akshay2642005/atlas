@@ -1,5 +1,5 @@
 .PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline \
-	eval-corpus-fetch eval-ingest-docs eval-queries-docs eval-docs
+	eval-corpus-fetch eval-ingest-docs eval-queries-docs eval-docs eval-identifiers
 
 # Keep tooling from dropping caches and bytecode into the working tree.
 export PYTHONDONTWRITEBYTECODE := 1
@@ -106,6 +106,20 @@ eval-docs:
 		--tenant $(EVAL_DOCS_TENANT) --queries $(EVAL_DOCS_QUERIES) \
 		--arms full4096,trunc2048,reembed:nvidia/nemotron-3.5-embed-1b@2048,hybrid,hybrid-rerank@24,dense-rerank@24 \
 		--label public-docs
+
+# The lexical branch exists for exact identifiers, so score it on them: symbols
+# that appear in at most three chunks, used alone as the query. ADR 0004.
+EVAL_DOCS_IDENTIFIERS ?= specs/eval/queries-public-docs-identifiers.jsonl
+
+eval-identifiers:
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/gen_identifier_queries.py \
+		--tenant $(EVAL_DOCS_TENANT) --out $(EVAL_DOCS_IDENTIFIERS)
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py warm \
+		--tenant $(EVAL_DOCS_TENANT) --queries $(EVAL_DOCS_IDENTIFIERS)
+	POSTGRES__URL="$(EVAL_DB)" uv run python scripts/eval_retrieval.py run \
+		--tenant $(EVAL_DOCS_TENANT) --queries $(EVAL_DOCS_IDENTIFIERS) \
+		--arms full4096,hybrid,hybrid-rerank@24,dense-rerank@24 \
+		--label public-docs-identifiers
 
 # Production pipeline: dense SQL vs RRF vs rerank depth, plus rerank without
 # the lexical branch. Reproduces the decision table in ADR 0003.

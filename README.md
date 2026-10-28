@@ -121,6 +121,14 @@ make eval-docs           # width + fusion arms -> EVAL-retrieval-public-docs.md
 
 `scripts/fetch_eval_corpus.py` is the reproducibility contract: it records one immutable upstream tag per source. Public docs are used deliberately so no private text is sent to the hosted embedder.
 
+Generated questions reuse their source chunk's vocabulary, so they cannot test the one thing the lexical branch exists for: a user typing an exact symbol. `make eval-identifiers` builds that set instead — it samples chunks, extracts an identifier that appears in at most three chunks of the corpus, and uses the symbol alone as the query.
+
+```bash
+make eval-identifiers    # exact-symbol queries -> EVAL-retrieval-public-docs-identifiers.md
+```
+
+Both query sets matter: on 8,990 chunks the lexical branch costs ~1.7 pp recall on generated questions but gains ~5 pp on exact identifiers once reranking is in place, which is why it is kept. See [ADR 0004](specs/adr/0004-retrieval-fusion-and-rerank-policy.md).
+
 Supported arms are `full4096`, `trunc2048`, `trunc2048-hnsw`, and `reembed:<model>@<dims>[:hnsw]` for a real model swap. `hybrid` runs the production retriever (dense + lexical with reciprocal-rank fusion), `hybrid-rerank` adds the hosted reranker, and `dense-rerank` drops the lexical branch so its contribution is measurable; those three measure the pipeline users actually hit, including its latency. Ground truth is stored as `(document checksum, chunk seq)`, so a query set survives re-ingestion and can be committed. The dense arms are deliberately fusion-free: mixing them with reranking would hide the embedding change being tested.
 
 Reranking uses the hosted `Nemotron-3.5-Rerank-8B` retrieval endpoint by default (`RERANK_BASE_URL` empty). It fails open: if the NIM account cannot reach the model, the retriever logs one warning and falls back to RRF order for five minutes instead of retrying on every request. Set `RETRIEVAL__ENABLE_RERANK=false` to skip it entirely.

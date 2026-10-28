@@ -239,3 +239,6 @@ __marimo__/
 
 # Fetched public documentation corpus (scripts/fetch_eval_corpus.py)
 .eval-corpora/
+
+# Long-running corpus ingest logs
+.eval-logs/
