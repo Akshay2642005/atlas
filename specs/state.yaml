@@ -8,7 +8,7 @@ session:
   active_epic_id: e03
   active_story_id: e03s02
   handoff:
-    last_step_completed: "Fixed BUG-008: a failed ingest is now retryable. `PgDocumentRepository.add` replaces an attempt that produced no chunks, so a guard rejection or a 504 no longer poisons a document forever, while a document that already has chunks still raises IntegrityError (the API's 409). The harness now skips on output rather than row existence and exits non-zero when a tenant holds zero-chunk documents. Verified both halves against the evaluation database.\n\nBefore that: measured retrieval on a 9k-chunk public-docs corpus (929 documents, 8,990 chunks) with two query sets: 120 generated questions and 60 exact-identifier queries. Settled both open questions in ADR 0004 — keep 4096 + the 8B embedder (2048 truncation is a tie, the 1B is -3.5 pp nDCG), and keep the lexical branch (costs 1.7 pp recall on questions, gains 5.0 pp on exact identifiers, once reranked). Fixed two ingest bugs found en route: BUG-007 (injection guard rejected 21 documents over `system:` substrings) and BUG-008 (a failed ingest is permanent — the document row outlives the failure)."
+    last_step_completed: "e03s01 done: `ContentStorePort` plus one `obstore` adapter covering S3/RustFS/MinIO, GCS, and a local directory, wired into both DI containers. Keys are tenant-scoped and content-addressed, staging keys are not, and presigning raises `StorageCapabilityError` on local instead of returning a URL that cannot work. Verified against a real RustFS, not just the compatibility claim: the same 14-case contract suite passes on `LocalStore` and on RustFS, and a presigned GET/PUT round-trip worked through plain urllib. Committed as 0190a5e (code) and 408dd1b (specs).\n\nBefore that: fixed BUG-008 (a failed ingest is now retryable), and measured retrieval on a 9k-chunk public-docs corpus (929 documents, 8,990 chunks) with 120 generated questions and 60 exact-identifier queries. Settled both open questions in ADR 0004 — keep 4096 + the 8B embedder (2048 truncation is a tie, the 1B is -3.5 pp nDCG), and keep the lexical branch (costs 1.7 pp recall on questions, gains 5.0 pp on exact identifiers, once reranked).\n\nNext is e03s02: the `blobs` / `document_versions` / `head_version_id` schema, migration 0004, and a content-addressed backfill from `document_contents` with `--verify` before the column is dropped. The retrieval oracle for e03s03 is identical recall/nDCG on `atlas-eval-docs`."
     open_decisions:
       - "Rerank outage fallback: the retriever serves the fused ordering for five minutes when the reranker is unreachable, which is 19 pp nDCG worse than dense alone at 9k chunks. Serving dense order would be strictly better here, but it changes what ENABLE_RERANK=false means."
       - "Fusion quality: RRF's co-occurrence boost promotes a dense rank-40 chunk above a dense rank-10 one; 28.8% of the rerank window is lexical-only. A promotion cap or document-level dedupe before fusion is unmeasured."
@@ -16,17 +16,17 @@ session:
       - "CI has never executed: the repository has no git remote, so semantic-release has not tagged 0.1.0 either."
     required_reading:
       - CONVENTIONS.md
-      - specs/adr/0004-retrieval-fusion-and-rerank-policy.md
-      - specs/verifications/EVAL-retrieval-public-docs.md
-      - specs/verifications/EVAL-retrieval-public-docs-identifiers.md
-      - specs/bugs/BUG-008.md
+      - specs/adr/0005-object-storage-and-content-addressing.md
+      - specs/epics/e03-object-storage-versioning/epic.yaml
+      - specs/verifications/BUILD-e03s01-object-storage-port.md
+      - ~/.opencode/plan/atlas-object-storage-versioning.md
     next_skill: null
-    timestamp: "2026-10-28"
+    timestamp: "2026-10-31"
 
 vcs:
   kind: git
   branch: master
-  commit: 13851f6
+  commit: 408dd1b
 
 metrics:
   story_start: null
