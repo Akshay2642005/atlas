@@ -54,6 +54,8 @@ atlas-api = "atlas_api.main:run"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# So tests can import `scripts.*` helpers without a package shim.
+pythonpath = ["."]
 # -p no:cacheprovider: keep the working tree free of .pytest_cache/
 addopts = "-q -p no:cacheprovider"
 
