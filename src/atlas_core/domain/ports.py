@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import uuid
 from collections.abc import AsyncIterator, Sequence
@@ -13,6 +14,7 @@ from atlas_core.domain.models import (
     Chunk,
     Document,
     DocumentStatus,
+    StoredObject,
 )
 
 
@@ -79,6 +81,36 @@ class DocumentRepositoryPort(Protocol):
     async def list_latest(self, tenant_id: str, *, limit: int) -> list[Document]: ...
 
     async def delete(self, tenant_id: str, document_id: uuid.UUID) -> bool: ...
+
+
+@runtime_checkable
+class ContentStorePort(Protocol):
+    """Immutable bytes in an object store, addressed by key.
+
+    Keys are opaque to callers; `atlas_storage.keys` derives them. The store is
+    never asked to interpret a key, which keeps S3, GCS, and a local directory
+    behind one contract.
+    """
+
+    async def put_bytes(self, key: str, data: bytes) -> StoredObject: ...
+
+    async def put_stream(self, key: str, chunks: AsyncIterator[bytes]) -> StoredObject: ...
+
+    async def open_stream(self, key: str) -> AsyncIterator[bytes]: ...
+
+    async def head(self, key: str) -> StoredObject | None:
+        """Return metadata, or `None` when the key does not exist."""
+        ...
+
+    async def copy(self, source: str, destination: str) -> None: ...
+
+    async def delete(self, key: str) -> None:
+        """Delete a key. Deleting a missing key is not an error."""
+        ...
+
+    async def presign_put(self, key: str, *, expires_in: datetime.timedelta) -> str: ...
+
+    async def presign_get(self, key: str, *, expires_in: datetime.timedelta) -> str: ...
 
 
 @runtime_checkable

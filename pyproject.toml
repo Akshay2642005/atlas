@@ -29,6 +29,7 @@ dependencies = [
   "arq>=0.26",
   "redis>=5.0",
   "opentelemetry-instrumentation-fastapi>=0.48b0",
+  "obstore>=0.12.1",
 ]
 
 [dependency-groups]

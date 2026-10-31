@@ -45,6 +45,20 @@ class IngestError(AtlasError):
     status = 422
 
 
+class StorageError(AtlasError):
+    """Object storage failed, or the requested capability is not available."""
+
+    code = "storage_error"
+    status = 503
+
+
+class StorageCapabilityError(StorageError):
+    """The configured backend cannot do this (e.g. presign on `local`)."""
+
+    code = "storage_capability_error"
+    status = 501
+
+
 class SecurityError(AtlasError):
     code = "security_error"
     status = 400

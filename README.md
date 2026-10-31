@@ -19,6 +19,7 @@ src/
   atlas_core/        domain models, ports (Protocols), config, security, observability, DI providers
   atlas_llm/         LangChain adapters: chat (Groq/OpenAI/Anthropic/NVIDIA), NVIDIA embeddings + rerank
   atlas_vector/      SQLAlchemy async schema, pgVector repositories, Dishka provider
+  atlas_storage/     object storage behind ContentStorePort (S3/RustFS/GCS/local)
   atlas_ingest/      loaders (txt/md/html/pdf), chunkers, ingest pipeline, provider
   atlas_retrieval/   hybrid retriever (RRF/rerank), grounded AnswerService (citations + trace)
   atlas_api/         FastAPI app, auth/rate limit deps, middlewares, routes, schemas
@@ -34,7 +35,8 @@ Dependencies point inward: `atlas_core` knows nothing about FastAPI, LangChain, 
 ```bash
 cp .env.example .env          # then set GROQ__API_KEY and NVIDIA__API_KEY (or another CHAT__PROVIDER)
 uv sync
-docker compose up -d postgres redis
+docker compose up -d postgres redis rustfs
+make storage-init                            # creates the object-storage bucket
 uv run alembic upgrade head
 
 uv run atlas-api                            # http://localhost:8000/docs

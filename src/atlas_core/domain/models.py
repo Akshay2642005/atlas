@@ -29,6 +29,15 @@ class Document:
 
 
 @dataclass(frozen=True, slots=True)
+class StoredObject:
+    """Metadata for a document's bytes in the content store."""
+
+    key: str
+    size_bytes: int
+    etag: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Chunk:
     id: uuid.UUID
     document_id: uuid.UUID

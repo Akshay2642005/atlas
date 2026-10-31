@@ -25,6 +25,43 @@ services:
       timeout: 3s
       retries: 20
 
+  # S3-compatible object storage. RustFS is the dev/prod default because it is
+  # self-hosted; the same adapter also points at AWS S3, GCS, or MinIO.
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: atlas
+      RUSTFS_SECRET_KEY: atlas-secret
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_OBS_LOGGER_LEVEL: error
+    command: ["/data"]
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # console
+    volumes:
+      - rustfsdata:/data
+
+  # One-shot bucket creation. `make storage-init` runs it; the retry loop covers
+  # the gap between "container started" and "S3 API answers".
+  storage-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      - rustfs
+    environment:
+      AWS_ACCESS_KEY_ID: atlas
+      AWS_SECRET_ACCESS_KEY: atlas-secret
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        until aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket atlas >/dev/null 2>&1; do
+          aws --endpoint-url http://rustfs:9000 s3 mb s3://atlas >/dev/null 2>&1 || true
+          sleep 1
+        done
+
   api:
     build:
       context: .
@@ -33,6 +70,13 @@ services:
     environment:
       POSTGRES__URL: postgresql+asyncpg://atlas:atlas@postgres:5432/atlas
       REDIS__URL: redis://redis:6379/0
+      STORAGE__BACKEND: s3
+      STORAGE__BUCKET: atlas
+      STORAGE__ENDPOINT: http://rustfs:9000
+      STORAGE__ACCESS_KEY_ID: atlas
+      STORAGE__SECRET_ACCESS_KEY: atlas-secret
+      STORAGE__FORCE_PATH_STYLE: "true"
+      STORAGE__ALLOW_HTTP: "true"
     ports:
       - "8000:8000"
     depends_on:
@@ -40,6 +84,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rustfs:
+        condition: service_started
 
   worker:
     build:
@@ -49,11 +95,21 @@ services:
     environment:
       POSTGRES__URL: postgresql+asyncpg://atlas:atlas@postgres:5432/atlas
       REDIS__URL: redis://redis:6379/0
+      STORAGE__BACKEND: s3
+      STORAGE__BUCKET: atlas
+      STORAGE__ENDPOINT: http://rustfs:9000
+      STORAGE__ACCESS_KEY_ID: atlas
+      STORAGE__SECRET_ACCESS_KEY: atlas-secret
+      STORAGE__FORCE_PATH_STYLE: "true"
+      STORAGE__ALLOW_HTTP: "true"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rustfs:
+        condition: service_started
 
 volumes:
   pgdata:
+  rustfsdata:

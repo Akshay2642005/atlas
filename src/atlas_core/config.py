@@ -74,6 +74,32 @@ class RedisSettings(BaseModel):
     url: str = "redis://localhost:6379/0"
 
 
+class StorageSettings(BaseModel):
+    """Object storage for document bytes.
+
+    One adapter covers S3-compatible stores (AWS S3, RustFS, MinIO), GCS, and a
+    local directory. `local` is the default so a fresh clone runs without any
+    infrastructure; it is not meant for deployment.
+    """
+
+    backend: Literal["local", "s3", "gcs"] = "local"
+    bucket: str = "atlas"
+    # Applied inside the bucket, so several deployments can share one bucket.
+    prefix: str = ""
+    # RustFS/MinIO: set the endpoint and keep path-style addressing. Empty means
+    # AWS S3, where obstore derives the endpoint from the region.
+    endpoint: str | None = None
+    region: str = "us-east-1"
+    access_key_id: str = ""
+    secret_access_key: str = ""
+    force_path_style: bool = False
+    allow_http: bool = False
+    local_root: str = ".atlas-storage"
+    # Objects above this size are spilled to a temp file instead of memory when
+    # a loader needs the whole payload (PDF text extraction does).
+    max_inline_bytes: int = 100 * 1024 * 1024
+
+
 class ApiSettings(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
@@ -149,6 +175,7 @@ class AtlasSettings(BaseSettings):
     nvidia: NvidiaSettings = Field(default_factory=NvidiaSettings)
     postgres: PostgresSettings = Field(default_factory=PostgresSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
     api: ApiSettings = Field(default_factory=ApiSettings)
     chunking: ChunkingSettings = Field(default_factory=ChunkingSettings)
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)

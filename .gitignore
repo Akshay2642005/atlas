@@ -242,3 +242,6 @@ __marimo__/
 
 # Long-running corpus ingest logs
 .eval-logs/
+
+# Local object-storage root (STORAGE__BACKEND=local)
+.atlas-storage/

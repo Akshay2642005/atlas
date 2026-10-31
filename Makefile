@@ -1,4 +1,4 @@
-.PHONY: sync lint format typecheck test preflight migrate api worker up down logs bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline \
+.PHONY: sync lint format typecheck test preflight migrate api worker up down logs storage-init bench eval-db eval-ingest eval-queries eval-warm eval eval-pipeline \
 	eval-corpus-fetch eval-ingest-docs eval-queries-docs eval-docs eval-identifiers
 
 # Keep tooling from dropping caches and bytecode into the working tree.
@@ -44,6 +44,10 @@ down:
 
 logs:
 	docker compose logs -f api worker
+
+# Create the object-storage bucket. Idempotent, and safe to re-run.
+storage-init:
+	docker compose run --rm storage-init
 
 # Seed a throwaway database with synthetic vectors and compare exact scans
 # against halfvec HNSW. Requires the atlas-postgres container to be running.

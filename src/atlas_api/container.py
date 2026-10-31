@@ -15,6 +15,7 @@ from atlas_core.domain.ports import QueuePort
 from atlas_ingest import providers as ingest_providers
 from atlas_llm import providers as llm_providers
 from atlas_retrieval import providers as retrieval_providers
+from atlas_storage import providers as storage_providers
 from atlas_vector import providers as vector_providers
 
 if TYPE_CHECKING:
@@ -56,6 +57,7 @@ def build_container(settings: AtlasSettings | None = None) -> AsyncContainer:
         *core_providers(settings),
         *llm_providers(),
         *vector_providers(),
+        *storage_providers(),
         *ingest_providers(),
         *retrieval_providers(),
         ApiProvider(),
