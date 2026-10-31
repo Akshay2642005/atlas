@@ -6,9 +6,9 @@ workflow_mode: solo-git  # team-pr | solo-git
 session:
   active_flow: build_epic  # build_epic | fix_bug | null
   active_epic_id: e03
-  active_story_id: e03s02
+  active_story_id: e03s03
   handoff:
-    last_step_completed: "e03s01 done: `ContentStorePort` plus one `obstore` adapter covering S3/RustFS/MinIO, GCS, and a local directory, wired into both DI containers. Keys are tenant-scoped and content-addressed, staging keys are not, and presigning raises `StorageCapabilityError` on local instead of returning a URL that cannot work. Verified against a real RustFS, not just the compatibility claim: the same 14-case contract suite passes on `LocalStore` and on RustFS, and a presigned GET/PUT round-trip worked through plain urllib. Committed as 0190a5e (code) and 408dd1b (specs).\n\nBefore that: fixed BUG-008 (a failed ingest is now retryable), and measured retrieval on a 9k-chunk public-docs corpus (929 documents, 8,990 chunks) with 120 generated questions and 60 exact-identifier queries. Settled both open questions in ADR 0004 — keep 4096 + the 8B embedder (2048 truncation is a tie, the 1B is -3.5 pp nDCG), and keep the lexical branch (costs 1.7 pp recall on questions, gains 5.0 pp on exact identifiers, once reranked).\n\nNext is e03s02: the `blobs` / `document_versions` / `head_version_id` schema, migration 0004, and a content-addressed backfill from `document_contents` with `--verify` before the column is dropped. The retrieval oracle for e03s03 is identical recall/nDCG on `atlas-eval-docs`."
+    last_step_completed: "e03s02 done: `blobs`, `document_versions`, `documents.head_version_id`, and `chunks.document_version_id` exist (migration 0004, additive), and every document in `atlas` and `atlas_eval` now points at a content-addressed blob with an immutable version 1. The chunk count is unchanged at 9,102, `--verify` rehashed all 949 head blobs back to their keys, and a second backfill pass wrote nothing. Committed as b0bfe90 (code) and 86ad8ca (specs).\n\nDeviation worth remembering: 0004 does NOT drop `uq_documents_tenant_checksum`, because that constraint is what raises the API's 409. It goes in 0005 with `document_contents` and `documents.checksum`, in e03s03, next to the code that stops depending on them.\n\nBefore that: e03s01 landed `ContentStorePort` and one `obstore` adapter for S3/RustFS/MinIO, GCS, and local, verified against a real RustFS including presigned GET/PUT.\n\nNext is e03s03: version-centric ports (`commit() -> created | unchanged`), `IngestSpec` carrying a blob instead of bytes, status writes targeting the version, head-flip after `indexed`, the head-scoped predicate shared by both retrieval branches, the serving-version fallback, migration 0005, and the eval no-regression gate on `atlas_eval`."
     open_decisions:
       - "Rerank outage fallback: the retriever serves the fused ordering for five minutes when the reranker is unreachable, which is 19 pp nDCG worse than dense alone at 9k chunks. Serving dense order would be strictly better here, but it changes what ENABLE_RERANK=false means."
       - "Fusion quality: RRF's co-occurrence boost promotes a dense rank-40 chunk above a dense rank-10 one; 28.8% of the rerank window is lexical-only. A promotion cap or document-level dedupe before fusion is unmeasured."
@@ -26,7 +26,7 @@ session:
 vcs:
   kind: git
   branch: master
-  commit: 408dd1b
+  commit: 86ad8ca
 
 metrics:
   story_start: null
