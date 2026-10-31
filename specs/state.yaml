@@ -4,9 +4,9 @@
 workflow_mode: solo-git  # team-pr | solo-git
 
 session:
-  active_flow: null  # build_epic | fix_bug | null
-  active_epic_id: null
-  active_story_id: null
+  active_flow: build_epic  # build_epic | fix_bug | null
+  active_epic_id: e03
+  active_story_id: e03s02
   handoff:
     last_step_completed: "Fixed BUG-008: a failed ingest is now retryable. `PgDocumentRepository.add` replaces an attempt that produced no chunks, so a guard rejection or a 504 no longer poisons a document forever, while a document that already has chunks still raises IntegrityError (the API's 409). The harness now skips on output rather than row existence and exits non-zero when a tenant holds zero-chunk documents. Verified both halves against the evaluation database.\n\nBefore that: measured retrieval on a 9k-chunk public-docs corpus (929 documents, 8,990 chunks) with two query sets: 120 generated questions and 60 exact-identifier queries. Settled both open questions in ADR 0004 — keep 4096 + the 8B embedder (2048 truncation is a tie, the 1B is -3.5 pp nDCG), and keep the lexical branch (costs 1.7 pp recall on questions, gains 5.0 pp on exact identifiers, once reranked). Fixed two ingest bugs found en route: BUG-007 (injection guard rejected 21 documents over `system:` substrings) and BUG-008 (a failed ingest is permanent — the document row outlives the failure)."
     open_decisions:

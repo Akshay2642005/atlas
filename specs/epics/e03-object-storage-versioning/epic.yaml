@@ -1,0 +1,52 @@
+id: e03
+title: Object storage + immutable document versions
+wsjf: 8.5
+status: building
+
+# Source plan: ~/.opencode/plan/atlas-object-storage-versioning.md
+#
+# Two decisions drive this epic:
+#   1. Object storage is a hard requirement (S3-compatible incl. RustFS/MinIO,
+#      and GCS) behind one port.
+#   2. Uploads are immutable and git-like: a document is an identity plus a
+#      lineage of content-addressed versions. History is append-only; revert
+#      commits a new version pointing at an old blob.
+#
+# Order matters. The schema migration writes through the storage port, so the
+# port lands first; otherwise the bytes have to be migrated twice.
+
+notes: |
+  Why versioning, not just storage:
+
+  Today `documents` is unique on (tenant_id, checksum), content lives in
+  `document_contents.bytea`, and BUG-008 was patched by deleting chunkless rows.
+  Editing a document either collides (409) or silently duplicates it.
+
+  After this epic:
+    - same bytes twice -> 200 {unchanged: true}, no new version
+    - edit -> new version, previous chunks retire from search atomically
+    - failed ingest -> retry the version in place; nothing to delete
+    - checksum dedupe moves to the blob layer
+    - citations pin a chunk that belongs to a version, so they never dangle
+
+  Retrieval must only see head versions, and must fall back to the newest
+  indexed ancestor when the head failed. That is the acceptance oracle for
+  e03s03: identical recall/nDCG on atlas-eval-docs before and after.
+
+stories:
+  - id: e03s01
+    title: Object storage port with S3/RustFS, GCS, and local backends
+    status: done
+    tasks: e03s01-tasks.yaml
+  - id: e03s02
+    title: Content-addressed blobs and immutable document versions (schema + backfill)
+    status: planned
+  - id: e03s03
+    title: Version-centric ports, pipeline, and head-scoped retrieval
+    status: planned
+  - id: e03s04
+    title: Streaming multipart upload, presigned uploads, history, revert, ingest progress
+    status: planned
+  - id: e03s05
+    title: Web dashboard (library, upload, document detail, chat)
+    status: planned

@@ -1,0 +1,77 @@
+story_id: e03s01
+title: Object storage port with S3/RustFS, GCS, and local backends
+status: building
+bcps: 5
+tasks:
+  - id: 1
+    description: Add obstore and the StorageSettings config group
+    verify: 'uv run python -c "from atlas_core.config import load_settings; print(load_settings().storage.backend)"'
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage"]
+  - id: 2
+    description: Add StoredObject to domain models and ContentStorePort to domain ports
+    verify: 'uv run python -c "from atlas_core.domain.ports import ContentStorePort; print(\"ok\")"'
+    risk: P1
+    security: none
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage"]
+  - id: 3
+    description: Add tenant-scoped content-addressed key derivation with validation
+    verify: "uv run pytest tests/test_storage_keys.py -q"
+    risk: P1
+    security: medium
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage", "Security Review"]
+  - id: 4
+    description: Implement ObstoreContentStore over S3, GCS, and local backends
+    verify: "uv run pytest tests/test_storage_contract.py -q"
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage"]
+  - id: 5
+    description: Register the storage provider in the API and worker containers
+    verify: 'uv run pytest tests/test_container_storage.py -q'
+    risk: P1
+    security: none
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage"]
+  - id: 6
+    description: Add RustFS to docker-compose and a storage-init bucket target
+    verify: "grep -q rustfs docker-compose.yml && grep -q storage-init Makefile"
+    risk: P2
+    security: low
+    status: passing
+    allure:
+      severity: normal
+      categories: ["Object Storage", "Dev Environment"]
+  - id: 7
+    description: Run the storage contract suite against RustFS when configured
+    verify: "ATLAS_TEST_S3_ENDPOINT=http://localhost:9000 uv run pytest tests/test_storage_contract.py -q"
+    risk: P2
+    security: low
+    status: passing
+    allure:
+      severity: normal
+      categories: ["Object Storage"]
+  - id: 8
+    description: Write ADR 0005 and run the full preflight gate
+    verify: "test -f specs/adr/0005-object-storage-and-content-addressing.md && make preflight"
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Object Storage", "Architecture"]
