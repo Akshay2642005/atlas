@@ -6,14 +6,20 @@ import json
 import uuid
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Security
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from atlas_api.deps import AnswerServiceDep, Authenticated
 from atlas_api.schemas import AnswerOut, ChatIn
+from atlas_api.security import API_KEY_SCHEME, AUTH_RESPONSES, BEARER_SCHEME
 from atlas_core.domain.models import Query
 
-router = APIRouter(prefix="/v1", tags=["chat"])
+router = APIRouter(
+    prefix="/v1",
+    tags=["chat"],
+    dependencies=[Security(API_KEY_SCHEME), Security(BEARER_SCHEME)],
+    responses=AUTH_RESPONSES,
+)
 
 
 @router.post("/chat", summary="Ask a grounded question over tenant documents", response_model=None)

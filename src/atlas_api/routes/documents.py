@@ -6,14 +6,23 @@ import base64
 import binascii
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Security, status
 
 from atlas_api.deps import Authenticated, DocumentsDep, PipelineDep, QueueDep
 from atlas_api.schemas import DocumentAcceptedOut, DocumentIn, DocumentOut, DocumentVersionOut
+from atlas_api.security import API_KEY_SCHEME, AUTH_RESPONSES, BEARER_SCHEME
 from atlas_core.domain.models import DocumentStatus
 from atlas_ingest.pipeline import IngestSpec
 
-router = APIRouter(prefix="/v1/documents", tags=["documents"])
+# The `Security(...)` entries are documentation: they register the schemes so
+# Swagger can send a key. `auto_error=False` keeps enforcement in
+# `middlewares.authenticated`, which reads the same two headers.
+router = APIRouter(
+    prefix="/v1/documents",
+    tags=["documents"],
+    dependencies=[Security(API_KEY_SCHEME), Security(BEARER_SCHEME)],
+    responses=AUTH_RESPONSES,
+)
 
 
 def _decode(content: str, encoding: str) -> bytes:

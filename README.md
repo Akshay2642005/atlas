@@ -214,7 +214,7 @@ Streaming: `{"query": "...", "stream": true}` → SSE with `delta` events and on
 | `GET` | `/v1/documents/{id}/versions` | API key | immutable version lineage, newest first |
 | `DELETE` | `/v1/documents/{id}` | API key | delete document, versions, blobs refs and chunks (FK cascade) |
 
-**Auth:** `X-API-Key: <key>` or `Authorization: Bearer <key>`. Keys map to tenants via `SECURITY__API_KEYS="key=tenant,key2=tenant2"`. Rate limit is a per-key sliding window (`SECURITY__RATE_LIMIT_RPM`).
+**Auth:** `X-API-Key: <key>` or `Authorization: Bearer <key>`. Keys map to tenants via `SECURITY__API_KEYS="key=tenant,key2=tenant2"`. Both schemes are declared in the OpenAPI document, so Swagger's **Authorize** button can attach either one to "Try it out". Rate limit is a per-key sliding window (`SECURITY__RATE_LIMIT_RPM`); `/healthz` and `/readyz` take no key.
 
 **Errors** are uniform: `{"error": {"code", "message", "details"}}`; `429` adds `Retry-After`.
 

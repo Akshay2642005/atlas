@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -127,3 +127,20 @@ class ReadyOut(BaseModel):
     status: Literal["ok", "degraded"]
     database: bool
     redis: bool
+
+
+class ErrorBody(BaseModel):
+    """The `error` object every non-2xx response carries.
+
+    Mirrors `AtlasError.to_payload()`. It exists so the OpenAPI document can
+    describe a 401 without hand-writing a schema reference that would drift
+    from what `error_envelope_handler` actually returns.
+    """
+
+    code: str
+    message: str
+    details: dict[str, Any] | list[Any] | str | None = None
+
+
+class ErrorEnvelope(BaseModel):
+    error: ErrorBody
