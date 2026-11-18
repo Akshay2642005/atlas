@@ -245,3 +245,4 @@ __marimo__/
 
 # Local object-storage root (STORAGE__BACKEND=local)
 .atlas-storage/
+.agents/loop-state/
