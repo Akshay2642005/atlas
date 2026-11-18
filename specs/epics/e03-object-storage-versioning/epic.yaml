@@ -43,7 +43,7 @@ stories:
     status: done
   - id: e03s03
     title: Version-centric ports, pipeline, and head-scoped retrieval
-    status: planned
+    status: done
   - id: e03s04
     title: Streaming multipart upload, presigned uploads, history, revert, ingest progress
     status: planned

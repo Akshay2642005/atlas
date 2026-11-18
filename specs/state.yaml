@@ -6,27 +6,27 @@ workflow_mode: solo-git  # team-pr | solo-git
 session:
   active_flow: build_epic  # build_epic | fix_bug | null
   active_epic_id: e03
-  active_story_id: e03s03
+  active_story_id: e03s04
   handoff:
-    last_step_completed: "e03s02 done: `blobs`, `document_versions`, `documents.head_version_id`, and `chunks.document_version_id` exist (migration 0004, additive), and every document in `atlas` and `atlas_eval` now points at a content-addressed blob with an immutable version 1. The chunk count is unchanged at 9,102, `--verify` rehashed all 949 head blobs back to their keys, and a second backfill pass wrote nothing. Committed as b0bfe90 (code) and 86ad8ca (specs).\n\nDeviation worth remembering: 0004 does NOT drop `uq_documents_tenant_checksum`, because that constraint is what raises the API's 409. It goes in 0005 with `document_contents` and `documents.checksum`, in e03s03, next to the code that stops depending on them.\n\nBefore that: e03s01 landed `ContentStorePort` and one `obstore` adapter for S3/RustFS/MinIO, GCS, and local, verified against a real RustFS including presigned GET/PUT.\n\nNext is e03s03: version-centric ports (`commit() -> created | unchanged`), `IngestSpec` carrying a blob instead of bytes, status writes targeting the version, head-flip after `indexed`, the head-scoped predicate shared by both retrieval branches, the serving-version fallback, migration 0005, and the eval no-regression gate on `atlas_eval`."
+    last_step_completed: "e03s03 done: ingest and retrieval are version-centric. `commit()` dedupes on the newest version's bytes and retries a failed newest version in place; the pipeline stores through `ContentStorePort` and flips `head_version_id` only after a version is `indexed`; both retrieval branches share one `searchable()` predicate. Migration 0005 dropped `document_contents`, the duplicated document columns and `uq_documents_tenant_checksum`, and made `chunks.document_version_id` NOT NULL. Committed as 28d8adb (code) plus the specs commit.\n\nTwo deviations worth remembering: the sampled eval no-regression gate was replaced by an exact set-equivalence proof (`chunks.document_version_id IS DISTINCT FROM head_version_id` over all 9,102 chunks, plus `tests/test_retrieval_scope.py`) because the predicate swap selects the same rows when every document has one version — see BUILD-e03s03. And five documents' original bytes are unrecoverable; they are listed in `specs/verifications/known-missing-blobs.json` and reported by `--verify` on a separate `accepted=` line, never as green.\n\nEnvironment note: the Postgres volume was reset after the backfill, so the local databases are empty (only `atlas` exists, no `atlas_eval`). The local object store survived with 947 blobs. Re-ingest is the recovery path; the eval corpus is reproducible from the pinned refs in `scripts/fetch_eval_corpus.py`.\n\nNext is e03s04: streaming multipart upload, presigned uploads, history, revert, ingest progress, and blob GC. Document deletion works: 0004's FK is ON DELETE CASCADE from `document_versions` to `chunks`, verified on a fresh database."
     open_decisions:
       - "Rerank outage fallback: the retriever serves the fused ordering for five minutes when the reranker is unreachable, which is 19 pp nDCG worse than dense alone at 9k chunks. Serving dense order would be strictly better here, but it changes what ENABLE_RERANK=false means."
       - "Fusion quality: RRF's co-occurrence boost promotes a dense rank-40 chunk above a dense rank-10 one; 28.8% of the rerank window is lexical-only. A promotion cap or document-level dedupe before fusion is unmeasured."
       - "Rerank latency (~1.0 s at depth 24) still dominates the request against 19-48 ms for retrieval."
-      - "CI has never executed: the repository has no git remote, so semantic-release has not tagged 0.1.0 either."
+      - "CI has never executed green: the remote exists (`origin`), but no run has been observed yet."
     required_reading:
       - CONVENTIONS.md
       - specs/adr/0005-object-storage-and-content-addressing.md
       - specs/epics/e03-object-storage-versioning/epic.yaml
-      - specs/verifications/BUILD-e03s01-object-storage-port.md
+      - specs/verifications/BUILD-e03s03-version-centric-pipeline-retrieval.md
       - ~/.opencode/plan/atlas-object-storage-versioning.md
     next_skill: null
-    timestamp: "2026-10-31"
+    timestamp: "2026-11-18"
 
 vcs:
   kind: git
   branch: master
-  commit: 86ad8ca
+  commit: 28d8adb
 
 metrics:
   story_start: null

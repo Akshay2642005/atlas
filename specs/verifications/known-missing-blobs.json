@@ -1,0 +1,37 @@
+[
+  {
+    "tenant_id": "atlas-eval",
+    "sha256": "b6fc537e3d684f677fc5a02a20b68aaac7e1734f81116274fdcad107c4c52f7c",
+    "source_uri": "/Users/akshay/dev/Projects/atlas/README.md",
+    "chunks": 10,
+    "reason": "Local object store was wiped by an environment reset. The README was edited after this version was ingested, so no file on disk or in git history hashes to these bytes."
+  },
+  {
+    "tenant_id": "atlas-eval",
+    "sha256": "c1841f38230da4600d6d108f4b2e47774228cfdd7de32f67be60a764a74fcfb0",
+    "source_uri": "/Users/akshay/dev/Projects/atlas/specs/epics/e01-live-run-hardening/e01s01-embedding-rerank-fixes.md",
+    "chunks": 5,
+    "reason": "Local object store was wiped by an environment reset. The epic spec was edited after this version was ingested; the original bytes are unrecoverable."
+  },
+  {
+    "tenant_id": "atlas-eval",
+    "sha256": "d9f72d4e819e91cfe0ae697f4ce95543d6b2623314b2913d56950b51aa018107",
+    "source_uri": "/Users/akshay/dev/Projects/atlas/docs/adr/0003-embedding-width-and-ann-indexing.md",
+    "chunks": 6,
+    "reason": "Local object store was wiped by an environment reset. The ADR was revised after this version was ingested; the original bytes are unrecoverable."
+  },
+  {
+    "tenant_id": "tenant-a",
+    "sha256": "93ff6867a0b70a82037eefb899e5c442a32c571b4b32e7ffe177c94a341daa54",
+    "source_uri": "file://docs/adr/0003-embedding-width-and-ann-indexing.md",
+    "chunks": 3,
+    "reason": "Local object store was wiped by an environment reset. Demo document from early ingest; the ADR was revised afterwards, so the ingested bytes no longer exist."
+  },
+  {
+    "tenant_id": "tenant-a",
+    "sha256": "7b289043402ba8b309a05a043930e2f993bfd4ec45abc8500eb295126bd5a331",
+    "source_uri": "handbook.md",
+    "chunks": 0,
+    "reason": "Local object store was wiped by an environment reset. Demo document; the source file is gone, so the ingested bytes cannot be found again."
+  }
+]

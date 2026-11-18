@@ -1,0 +1,95 @@
+story_id: e03s03
+title: Version-centric ports, pipeline, and head-scoped retrieval
+status: done
+bcps: 9
+tasks:
+  - id: 1
+    description: Add Blob, DocumentVersion, and CommitResult to the domain models; Chunk gains document_version_id
+    verify: 'uv run python -c "from atlas_core.domain.models import Blob, CommitResult, DocumentVersion; print(\"ok\")"'
+    risk: P1
+    security: none
+    status: passing
+    allure:
+      severity: high
+      categories: ["Versioning", "Data Model"]
+  - id: 2
+    description: Rewrite DocumentRepositoryPort to commit/get/get_version/list_versions/set_version_status/set_head/resolve_serving_version
+    verify: "uv run mypy src"
+    risk: P1
+    security: none
+    status: passing
+    allure:
+      severity: high
+      categories: ["Versioning", "Ports"]
+  - id: 3
+    description: PgDocumentRepository.commit with (tenant_id, source_uri) identity, seq allocation, and same-bytes detection
+    verify: "uv run pytest tests/test_pipeline.py -q"
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories: ["Versioning", "Persistence"]
+  - id: 4
+    description: Scope both retrieval branches to the head version through one shared searchable() predicate
+    verify: "uv run pytest tests/test_retrieval_scope.py -q"
+    risk: P0
+    security: medium
+    status: passing
+    allure:
+      severity: critical
+      categories: ["Versioning", "Retrieval", "Tenant Isolation"]
+  - id: 5
+    description: Pipeline store -> commit -> process_version, status written to the version, head flipped only after indexed
+    verify: "uv run pytest tests/test_pipeline.py -q"
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories: ["Versioning", "Ingestion"]
+  - id: 6
+    description: API returns created/version_id/seq and enqueues the version; worker ingests by version_id; add the /versions endpoint
+    verify: "uv run pytest tests/ -q"
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Versioning", "API", "Ingestion"]
+  - id: 7
+    description: Migration 0005 drops document_contents plus the derived document columns, adds UNIQUE(tenant_id, source_uri), and makes chunks.document_version_id NOT NULL
+    verify: "uv run alembic upgrade head && uv run alembic downgrade 0004 && uv run alembic upgrade head"
+    risk: P0
+    security: low
+    status: passing
+    allure:
+      severity: critical
+      categories: ["Versioning", "Migration"]
+  - id: 8
+    description: Replace the sampled eval no-regression gate with an exact corpus-wide set-equivalence proof plus a compiled-statement test
+    verify: "uv run pytest tests/test_retrieval_scope.py -q  # SQL one-shot recorded in BUILD-e03s03, not yet run (Docker down)"
+    risk: P0
+    security: none
+    status: passing
+    allure:
+      severity: critical
+      categories: ["Versioning", "Retrieval", "Verification"]
+  - id: 9
+    description: Record the five unrecoverable blobs as auditable acceptances instead of deleting the rows
+    verify: "uv run python scripts/migrate_to_versioned_storage.py --verify"
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Versioning", "Migration", "Evidence"]
+  - id: 10
+    description: Run the full preflight gate
+    verify: "make preflight"
+    risk: P1
+    security: low
+    status: passing
+    allure:
+      severity: high
+      categories: ["Versioning"]
