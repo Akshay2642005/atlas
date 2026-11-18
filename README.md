@@ -56,7 +56,7 @@ flowchart TB
     end
 
     subgraph Worker["atlas_worker — arq / Redis"]
-        T[Ingestion tasks<br/>processing → indexed | failed]
+        T["Ingestion tasks<br/>processing → indexed | failed"]
     end
 
     subgraph Core["atlas_core — domain, ports, config, security, DI"]
