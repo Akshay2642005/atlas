@@ -70,11 +70,12 @@ async def _chunks(engine: AsyncEngine, tenant: str) -> list[dict[str, object]]:
         rows = await conn.execute(
             text(
                 """
-                SELECT c.id::text AS chunk_id, d.checksum, c.seq, c.text
+                SELECT c.id::text AS chunk_id, v.checksum, c.seq, c.text
                   FROM chunks c
                   JOIN documents d ON d.id = c.document_id
+                  JOIN document_versions v ON v.id = c.document_version_id
                  WHERE c.tenant_id = :tenant
-                 ORDER BY d.checksum, c.seq
+                 ORDER BY v.checksum, c.seq
                 """
             ),
             {"tenant": tenant},

@@ -1,4 +1,4 @@
-"""Document ingestion endpoints (upload -> queue -> worker pipeline)."""
+"""Document ingestion endpoints (upload -> store -> commit -> queue)."""
 
 from __future__ import annotations
 
@@ -7,12 +7,11 @@ import binascii
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy.exc import IntegrityError
 
-from atlas_api.deps import Authenticated, DocumentsDep, QueueDep
-from atlas_api.schemas import DocumentAcceptedOut, DocumentIn, DocumentOut
-from atlas_core.domain.models import Document, DocumentStatus
-from atlas_ingest.loaders import checksum
+from atlas_api.deps import Authenticated, DocumentsDep, PipelineDep, QueueDep
+from atlas_api.schemas import DocumentAcceptedOut, DocumentIn, DocumentOut, DocumentVersionOut
+from atlas_core.domain.models import DocumentStatus
+from atlas_ingest.pipeline import IngestSpec
 
 router = APIRouter(prefix="/v1/documents", tags=["documents"])
 
@@ -23,30 +22,44 @@ def _decode(content: str, encoding: str) -> bytes:
     try:
         return base64.b64decode(content, validate=True)
     except (binascii.Error, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="invalid base64") from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="invalid base64"
+        ) from exc
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED, response_model=DocumentAcceptedOut)
 async def upload(
     body: DocumentIn,
     tenant: Authenticated,
-    documents: DocumentsDep,
+    pipeline: PipelineDep,
     queue: QueueDep,
 ) -> DocumentAcceptedOut:
-    raw = _decode(body.content, body.content_encoding)
-    document = Document(
-        id=uuid.uuid4(),
-        tenant_id=tenant.tenant_id,
-        source_uri=body.source_uri,
-        mime=body.mime,
-        checksum=checksum(raw),
+    """Store the bytes, commit a version, and queue it.
+
+    Re-uploading the head's exact bytes returns `created=false` and queues
+    nothing: the version is already serving. Different bytes append a new
+    version, which is the edit path — the old version stays searchable until the
+    new one is indexed.
+    """
+    committed = await pipeline.store(
+        IngestSpec(
+            tenant_id=tenant.tenant_id,
+            content=_decode(body.content, body.content_encoding),
+            mime=body.mime,
+            source_uri=body.source_uri,
+        )
     )
-    try:
-        await documents.add(document, raw)
-    except IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="document already ingested") from exc
-    job_id = await queue.enqueue_ingest(tenant.tenant_id, document.id)
-    return DocumentAcceptedOut(id=document.id, status=DocumentStatus.PENDING, job_id=job_id)
+    job_id = ""
+    if committed.version.status is not DocumentStatus.INDEXED:
+        job_id = await queue.enqueue_ingest(tenant.tenant_id, committed.version.id)
+    return DocumentAcceptedOut(
+        id=committed.document.id,
+        status=committed.version.status,
+        version_id=committed.version.id,
+        seq=committed.version.seq,
+        created=committed.created,
+        job_id=job_id,
+    )
 
 
 @router.get("", response_model=list[DocumentOut])
@@ -69,6 +82,22 @@ async def get_document(
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="document not found")
     return DocumentOut.from_domain(doc)
+
+
+@router.get("/{document_id}/versions", response_model=list[DocumentVersionOut])
+async def list_versions(
+    document_id: uuid.UUID,
+    tenant: Authenticated,
+    documents: DocumentsDep,
+    limit: int = 50,
+) -> list[DocumentVersionOut]:
+    """The append-only lineage, newest first."""
+    if await documents.get(tenant.tenant_id, document_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="document not found")
+    versions = await documents.list_versions(
+        tenant.tenant_id, document_id, limit=max(1, min(limit, 200))
+    )
+    return [DocumentVersionOut.from_domain(version) for version in versions]
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

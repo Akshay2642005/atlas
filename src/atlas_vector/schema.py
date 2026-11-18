@@ -39,16 +39,14 @@ class BlobRow(Base):
 
 
 class DocumentRow(Base):
+    """Document identity. Everything about the bytes lives on its versions."""
+
     __tablename__ = "documents"
-    __table_args__ = (UniqueConstraint("tenant_id", "checksum", name="uq_documents_tenant_checksum"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "source_uri", name="uq_documents_tenant_source"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     source_uri: Mapped[str] = mapped_column(Text, nullable=False)
-    mime: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
-    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
-    error: Mapped[str | None] = mapped_column(Text)
     # The only mutable pointer in the version model. A version flips it only
     # once it is fully indexed, so a half-ingested version is never searchable.
     # `use_alter` breaks the documents <-> document_versions cycle in DDL.
@@ -114,13 +112,12 @@ class ChunkRow(Base):
     document_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    # Which version of the document this chunk belongs to. Nullable only while
-    # the 0004 backfill is filling existing rows; e03s03 makes it NOT NULL once
-    # the pipeline writes versions directly.
-    document_version_id: Mapped[uuid.UUID | None] = mapped_column(
+    # Which version of the document this chunk belongs to. Every chunk belongs
+    # to exactly one version, and retrieval only sees the head version's chunks.
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         ForeignKey("document_versions.id", ondelete="CASCADE"),
-        nullable=True,
+        nullable=False,
         index=True,
     )
     tenant_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
@@ -134,12 +131,3 @@ class ChunkRow(Base):
     )
 
 
-class DocumentContentRow(Base):
-    """Raw source payload (BYTEA) kept out of `documents` for clean lifecycle mgmt."""
-
-    __tablename__ = "document_contents"
-
-    document_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
-    )
-    content: Mapped[bytes] = mapped_column(nullable=False)

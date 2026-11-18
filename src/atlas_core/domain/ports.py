@@ -10,10 +10,13 @@ from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from atlas_core.domain.models import (
+    Blob,
     ChatMessage,
     Chunk,
+    CommitResult,
     Document,
     DocumentStatus,
+    DocumentVersion,
     StoredObject,
 )
 
@@ -61,22 +64,66 @@ class ChunkerPort(Protocol):
 
 @runtime_checkable
 class DocumentRepositoryPort(Protocol):
-    async def add(self, document: Document, content: bytes) -> None:
-        """Persist a document and its raw content.
+    """Document identity, lineage, and the one mutable pointer.
 
-        Re-adding the same `(tenant_id, checksum)` replaces an earlier attempt
-        that produced no chunks, so a failed ingest is retryable. A document
-        that already produced chunks still conflicts.
+    A document is an identity (`tenant_id`, `source_uri`) plus an append-only
+    lineage of versions. Bytes live in the object store; this port never sees
+    them, which is what keeps the repository a metadata store.
+    """
+
+    async def commit(
+        self,
+        *,
+        tenant_id: str,
+        source_uri: str,
+        blob: Blob,
+        mime: str,
+        message: str | None = None,
+    ) -> CommitResult:
+        """Record `blob` as the next version of `source_uri`.
+
+        Same bytes as the head returns `created=False` and writes nothing; new
+        bytes append `seq = max + 1`. The head pointer does not move here — it
+        moves when the version is `indexed`, so an unfinished version is never
+        searchable.
         """
         ...
 
     async def get(self, tenant_id: str, document_id: uuid.UUID) -> Document | None: ...
 
-    async def load_content(self, tenant_id: str, document_id: uuid.UUID) -> bytes | None: ...
+    async def get_version(
+        self, tenant_id: str, version_id: uuid.UUID
+    ) -> DocumentVersion | None: ...
 
-    async def set_status(
-        self, tenant_id: str, document_id: uuid.UUID, status: DocumentStatus, *, error: str | None = None
+    async def list_versions(
+        self, tenant_id: str, document_id: uuid.UUID, *, limit: int
+    ) -> list[DocumentVersion]: ...
+
+    async def set_version_status(
+        self,
+        tenant_id: str,
+        version_id: uuid.UUID,
+        status: DocumentStatus,
+        *,
+        error: str | None = None,
+        chunk_count: int | None = None,
     ) -> None: ...
+
+    async def set_head(
+        self, tenant_id: str, document_id: uuid.UUID, version_id: uuid.UUID
+    ) -> None:
+        """Move the head pointer. Only called once a version is `indexed`."""
+        ...
+
+    async def resolve_serving_version(
+        self, document: Document
+    ) -> DocumentVersion | None:
+        """The version retrieval serves: the head, which is always indexed.
+
+        A failed version never becomes head, so this needs no ancestor walk; it
+        returns `None` only while a document has never had a successful ingest.
+        """
+        ...
 
     async def list_latest(self, tenant_id: str, *, limit: int) -> list[Document]: ...
 
@@ -116,8 +163,13 @@ class ContentStorePort(Protocol):
 @runtime_checkable
 class VectorRepositoryPort(Protocol):
     async def upsert_chunks(
-        self, tenant_id: str, document_id: uuid.UUID, chunks: Sequence[tuple[Chunk, Sequence[float]]]
-    ) -> int: ...
+        self,
+        tenant_id: str,
+        document_version_id: uuid.UUID,
+        chunks: Sequence[tuple[Chunk, Sequence[float]]],
+    ) -> int:
+        """Persist chunks under one version. Chunks of other versions are untouched."""
+        ...
 
     async def semantic_search(
         self, tenant_id: str, embedding: Sequence[float], *, k: int
@@ -128,7 +180,9 @@ class VectorRepositoryPort(Protocol):
 
 @runtime_checkable
 class QueuePort(Protocol):
-    async def enqueue_ingest(self, tenant_id: str, document_id: uuid.UUID) -> str: ...
+    async def enqueue_ingest(self, tenant_id: str, version_id: uuid.UUID) -> str:
+        """Queue ingestion of one document version, not of the document."""
+        ...
 
 
 @runtime_checkable

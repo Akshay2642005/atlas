@@ -26,9 +26,9 @@ class _ArqQueue(QueuePort):
     def __init__(self, pool: ArqRedis) -> None:
         self._pool = pool
 
-    async def enqueue_ingest(self, tenant_id: str, document_id: uuid.UUID) -> str:
+    async def enqueue_ingest(self, tenant_id: str, version_id: uuid.UUID) -> str:
         job = await self._pool.enqueue_job(
-            "ingest_document", tenant_id=tenant_id, document_id=str(document_id)
+            "ingest_document", tenant_id=tenant_id, version_id=str(version_id)
         )
         if job is None:
             raise RuntimeError("Failed to enqueue job")

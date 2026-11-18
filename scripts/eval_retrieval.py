@@ -333,10 +333,11 @@ async def _existing_checksums(engine: AsyncEngine, tenant: str) -> set[str]:
         rows = await _rows(
             conn,
             """
-            SELECT d.checksum
-              FROM documents d
+            SELECT DISTINCT v.checksum
+              FROM document_versions v
+              JOIN documents d ON d.id = v.document_id
              WHERE d.tenant_id = :tenant
-               AND EXISTS (SELECT 1 FROM chunks c WHERE c.document_id = d.id)
+               AND EXISTS (SELECT 1 FROM chunks c WHERE c.document_version_id = v.id)
             """,
             {"tenant": tenant},
         )
@@ -449,10 +450,11 @@ async def _sample_chunks(
             SELECT c.id::text AS chunk_id,
                    c.seq,
                    c.text,
-                   d.checksum,
+                   v.checksum,
                    d.source_uri
               FROM chunks c
               JOIN documents d ON d.id = c.document_id
+              JOIN document_versions v ON v.id = c.document_version_id
              WHERE c.tenant_id = :tenant
                AND length(c.text) BETWEEN :min_chars AND :max_chars
              ORDER BY md5(c.id::text || :seed)
@@ -593,9 +595,10 @@ async def _corpus(
         refs = await _rows(
             conn,
             """
-            SELECT c.id::text AS chunk_id, c.seq, d.checksum
+            SELECT c.id::text AS chunk_id, c.seq, v.checksum
               FROM chunks c
               JOIN documents d ON d.id = c.document_id
+              JOIN document_versions v ON v.id = c.document_version_id
              WHERE c.tenant_id = :tenant
             """,
             {"tenant": tenant},

@@ -19,7 +19,13 @@ resumed by running the same command again.
     uv run python scripts/migrate_to_versioned_storage.py --verify
 
 `--verify` rehashes every head blob rather than trusting the insert. It is the
-gate that decides whether `document_contents` can ever be dropped.
+gate that decides whether `document_contents` can ever be dropped, and it keeps
+working after 0005 removes that table and `documents.checksum` — it compares the
+blob to the version, which is the durable record either way.
+
+The backfill half reads `documents.checksum` and `document_contents`, so it only
+runs before 0005. On a database already migrated past 0005 there is nothing left
+to move, and `--verify` is the command that still means something.
 """
 
 from __future__ import annotations
@@ -27,9 +33,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import json
 import sys
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
@@ -42,6 +50,13 @@ from atlas_storage.obstore_store import build_content_store
 from atlas_vector.engine import create_engine_and_session
 
 BATCH = 64
+
+# Bytes that are known to be gone from the store and cannot be restored, with the
+# reason recorded next to them. Anything in here is reported as `accepted` by
+# `--verify` instead of as a problem; anything else that is missing is a problem.
+# The list exists so that losing an object is loud and auditable rather than
+# silently tolerated — an entry is a decision someone wrote down.
+DEFAULT_EXCEPTIONS = Path("specs/verifications/known-missing-blobs.json")
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,12 +79,21 @@ class Counters:
     skipped: int = 0
     written: int = 0
     chunks_linked: int = 0
+    accepted: int = 0
     problems: list[str] | None = None
 
     def problem(self, message: str) -> None:
         if self.problems is None:
             self.problems = []
         self.problems.append(message)
+
+
+def load_exceptions(path: Path) -> frozenset[tuple[str, str]]:
+    """Read the recorded (tenant, sha256) pairs whose bytes are known to be lost."""
+    if not path.exists():
+        return frozenset()
+    entries = json.loads(path.read_text())
+    return frozenset((entry["tenant_id"], entry["sha256"]) for entry in entries)
 
 
 def plan_version(
@@ -267,7 +291,11 @@ async def run_backfill(
 
 
 async def verify(
-    engine: AsyncEngine, store: ContentStorePort, *, tenant: str | None
+    engine: AsyncEngine,
+    store: ContentStorePort,
+    *,
+    tenant: str | None,
+    accepted: frozenset[tuple[str, str]] = frozenset(),
 ) -> Counters:
     """Prove the backfill is complete and the bytes behind it are real."""
     counters = Counters()
@@ -354,7 +382,7 @@ async def verify(
             await conn.execute(
                 text(
                     """
-                    SELECT d.id AS document_id, d.tenant_id, d.checksum,
+                    SELECT d.id AS document_id, d.tenant_id, v.checksum,
                            v.id AS version_id, b.sha256, b.size_bytes, b.storage_key
                     FROM documents d
                     JOIN document_versions v ON v.id = d.head_version_id
@@ -370,9 +398,17 @@ async def verify(
     for head in heads:
         counters.documents += 1
         if head.sha256 != head.checksum:
-            counters.problem(f"document {head.document_id}: version checksum != document checksum")
+            counters.problem(f"document {head.document_id}: blob sha256 != version checksum")
         meta = await store.head(head.storage_key)
         if meta is None:
+            if (head.tenant_id, head.sha256) in accepted:
+                counters.accepted += 1
+                print(
+                    f"  ~ accepted: document {head.document_id} bytes lost "
+                    f"({head.sha256[:12]}, {head.storage_key})",
+                    file=sys.stderr,
+                )
+                continue
             counters.problem(f"document {head.document_id}: blob missing at {head.storage_key}")
             continue
         if meta.size_bytes != head.size_bytes:
@@ -395,7 +431,7 @@ def _report(action: str, counters: Counters) -> int:
     print(
         f"{action}: documents={counters.documents} written={counters.written} "
         f"skipped={counters.skipped} chunks_linked={counters.chunks_linked} "
-        f"problems={len(problems)}"
+        f"accepted={counters.accepted} problems={len(problems)}"
     )
     for problem in problems:
         print(f"  ! {problem}", file=sys.stderr)
@@ -408,7 +444,10 @@ async def _main(args: argparse.Namespace) -> int:
     engine, _ = create_engine_and_session(settings.postgres)
     try:
         if args.verify:
-            return _report("verify", await verify(engine, store, tenant=args.tenant))
+            accepted = load_exceptions(args.exceptions)
+            return _report(
+                "verify", await verify(engine, store, tenant=args.tenant, accepted=accepted)
+            )
         counters = await run_backfill(
             engine, store, tenant=args.tenant, dry_run=args.dry_run
         )
@@ -425,6 +464,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--verify", action="store_true", help="assert the backfill is complete and the bytes are real"
+    )
+    parser.add_argument(
+        "--exceptions",
+        type=Path,
+        default=DEFAULT_EXCEPTIONS,
+        help="recorded blobs whose bytes are known to be lost (see the file for the format)",
     )
     return parser.parse_args(argv)
 

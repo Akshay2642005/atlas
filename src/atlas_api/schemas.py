@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from atlas_core.domain.models import Answer, Document, DocumentStatus
+from atlas_core.domain.models import Answer, Document, DocumentStatus, DocumentVersion
 
 
 class ChatIn(BaseModel):
@@ -64,6 +64,9 @@ class DocumentOut(BaseModel):
     status: DocumentStatus
     error: str | None = None
     created_at: datetime.datetime | None = None
+    # What retrieval is serving. The newest version can be a failed attempt on
+    # top of it, which is why this is not the same thing as `status`.
+    head_version_id: uuid.UUID | None = None
 
     @classmethod
     def from_domain(cls, doc: Document) -> DocumentOut:
@@ -75,12 +78,48 @@ class DocumentOut(BaseModel):
             status=doc.status,
             error=doc.error,
             created_at=doc.created_at,
+            head_version_id=doc.head_version_id,
+        )
+
+
+class DocumentVersionOut(BaseModel):
+    id: uuid.UUID
+    document_id: uuid.UUID
+    seq: int
+    status: DocumentStatus
+    checksum: str
+    mime: str
+    chunk_count: int
+    message: str | None = None
+    error: str | None = None
+    parent_version_id: uuid.UUID | None = None
+    created_at: datetime.datetime | None = None
+
+    @classmethod
+    def from_domain(cls, version: DocumentVersion) -> DocumentVersionOut:
+        return cls(
+            id=version.id,
+            document_id=version.document_id,
+            seq=version.seq,
+            status=version.status,
+            checksum=version.checksum,
+            mime=version.mime,
+            chunk_count=version.chunk_count,
+            message=version.message,
+            error=version.error,
+            parent_version_id=version.parent_version_id,
+            created_at=version.created_at,
         )
 
 
 class DocumentAcceptedOut(BaseModel):
     id: uuid.UUID
     status: DocumentStatus
+    version_id: uuid.UUID
+    seq: int
+    # False when the head already held these bytes: an upload that changed
+    # nothing, answered 202 rather than 409.
+    created: bool
     job_id: str
 
 

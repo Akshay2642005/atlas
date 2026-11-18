@@ -14,14 +14,19 @@ _log = structlog.get_logger(__name__)
 _tracer = get_tracer("atlas.worker")
 
 
-async def ingest_document(ctx: dict[str, Any], tenant_id: str, document_id: str) -> dict[str, Any]:
-    """Idempotent-by-status job: process a pending document end to end."""
+async def ingest_document(ctx: dict[str, Any], tenant_id: str, version_id: str) -> dict[str, Any]:
+    """Process one document version. Retrying is safe: the work is per version."""
     container = ctx["container"]
-    doc_uuid = uuid.UUID(document_id)
+    version_uuid = uuid.UUID(version_id)
     with _tracer.start_as_current_span(
-        "worker.ingest", attributes={"tenant.id": tenant_id, "document.id": document_id}
+        "worker.ingest", attributes={"tenant.id": tenant_id, "version.id": version_id}
     ):
         pipeline: IngestPipeline = await container.get(IngestPipeline)
-        result = await pipeline.process_document(tenant_id, doc_uuid)
-        _log.info("worker.ingest.done", document_id=document_id, chunks=result.chunks)
-        return {"document_id": document_id, "chunks": result.chunks}
+        result = await pipeline.process_version(tenant_id, version_uuid)
+        _log.info(
+            "worker.ingest.done",
+            document_id=str(result.document.id),
+            version_id=version_id,
+            chunks=result.chunks,
+        )
+        return {"document_id": str(result.document.id), "version_id": version_id, "chunks": result.chunks}

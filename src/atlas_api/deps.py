@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from atlas_api.middlewares import TenantKey, authenticated
 from atlas_core.config import AtlasSettings
 from atlas_core.domain.ports import DocumentRepositoryPort, QueuePort
+from atlas_ingest.pipeline import IngestPipeline
 from atlas_retrieval.answerer import AnswerService
 
 
@@ -37,6 +38,10 @@ async def get_documents(request: Request) -> DocumentRepositoryPort:
     return cast(DocumentRepositoryPort, await _resolve(request, DocumentRepositoryPort))
 
 
+async def get_pipeline(request: Request) -> IngestPipeline:
+    return cast(IngestPipeline, await _resolve(request, IngestPipeline))
+
+
 async def get_queue(request: Request) -> QueuePort:
     return cast(QueuePort, await _resolve(request, QueuePort))
 
@@ -53,6 +58,7 @@ SettingsDep = Annotated[AtlasSettings, Depends(get_settings)]
 AnswerServiceDep = Annotated[AnswerService, Depends(get_answer_service)]
 DocumentsDep = Annotated[DocumentRepositoryPort, Depends(get_documents)]
 QueueDep = Annotated[QueuePort, Depends(get_queue)]
+PipelineDep = Annotated[IngestPipeline, Depends(get_pipeline)]
 EngineDep = Annotated[AsyncEngine, Depends(get_engine)]
 RedisDep = Annotated[Redis, Depends(get_redis)]
 Authenticated = Annotated[TenantKey, Depends(authenticated)]
@@ -62,6 +68,7 @@ __all__ = [
     "Authenticated",
     "DocumentsDep",
     "EngineDep",
+    "PipelineDep",
     "QueueDep",
     "RedisDep",
     "SettingsDep",

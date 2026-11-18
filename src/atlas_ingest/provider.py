@@ -7,6 +7,7 @@ from dishka import Provider, Scope, provide
 from atlas_core.config import AtlasSettings
 from atlas_core.domain.ports import (
     ChunkerPort,
+    ContentStorePort,
     DocumentRepositoryPort,
     EmbedderPort,
     InjectionGuardPort,
@@ -36,6 +37,7 @@ class IngestProvider(Provider):
         sanitizer: Sanitizer,
         pii: PiiDetectorPort,
         guard: InjectionGuardPort,
+        store: ContentStorePort,
     ) -> IngestPipeline:
         return IngestPipeline(
             settings=settings,
@@ -46,6 +48,7 @@ class IngestProvider(Provider):
             sanitizer=sanitizer,
             pii=pii,
             guard=guard,
+            store=store,
         )
 
 
